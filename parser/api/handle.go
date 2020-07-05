@@ -1,0 +1,58 @@
+package api
+
+import (
+	"github.com/dave/dst"
+	"github.com/hocv/gin-swagger-gen/ast"
+)
+
+type Handle interface {
+	Asts() *ast.Asts
+	Type() string
+	Cond(sel string) bool
+	Parser(val string, vat string, call *dst.CallExpr, vs map[string]string)
+	Inter(a *ast.Ast, decl *dst.FuncDecl)
+}
+
+func parseStmtList(stmts []dst.Stmt, vars map[string]string, hdl Handle) {
+	for _, stmt := range stmts {
+		switch stmt.(type) {
+		case *dst.IfStmt:
+			ifStmt := stmt.(*dst.IfStmt)
+			local := copyMap(vars)
+			parseStmtItem(ifStmt.Init, local, hdl)
+			parseStmtList(ifStmt.Body.List, local, hdl)
+		case *dst.BlockStmt:
+			local := copyMap(vars)
+			parseStmtList(stmt.(*dst.BlockStmt).List, local, hdl)
+		default:
+			parseStmtItem(stmt, vars, hdl)
+		}
+	}
+}
+
+func parseStmtItem(stmt interface{}, vars map[string]string, hdl Handle) {
+	vs := ast.GetVars(stmt)
+	for v, t := range vs {
+		_, sel := splitDot(t)
+
+		if hdl.Cond(sel) {
+			call, err := ast.CallExprByVarName(stmt, v)
+			if err != nil {
+				continue
+			}
+			hdl.Parser(v, t, call, vars)
+			continue
+		}
+
+		if v != "_" {
+			vars[v] = t
+			continue
+		}
+		hSel, hName := splitDot(sel)
+		v, ok := vars[hSel]
+		if !ok {
+			hSel = v
+		}
+		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, hdl.Inter)
+	}
+}
