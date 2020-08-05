@@ -69,8 +69,15 @@ func (rh *routeHandle) Parser(val string, vat string, call *dst.CallExpr, vs map
 	rh.RouteFns[sel](val, cal, call)
 }
 
-func (rh *routeHandle) Inter(a *ast.Ast, decl *dst.FuncDecl) {
-	parseRoute(rh.api, a, decl, rh.RouteMap, rh.initExpr)
+func (rh *routeHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vars map[string]string) {
+	rm := copyMap(rh.RouteMap)
+	for k, v := range vars {
+		if vv, ok := rh.RouteMap[v]; ok {
+			rm[k] = vv
+			delete(rm, v)
+		}
+	}
+	parseRoute(rh.api, a, decl, rm, rh.initExpr)
 }
 
 func (rh *routeHandle) parseGroup(val string, cal string, call *dst.CallExpr) {
@@ -122,7 +129,7 @@ func (rh *routeHandle) parseMethod(val string, cal string, call *dst.CallExpr) {
 		PathParams:  routePathParams(firstArg),
 		RouteMethod: strings.ToLower(sel.Sel.Name),
 	}
-	searchGinFunc(rh.Asts(), "Context", handleCall, handleFn, func(da *ast.Ast, sd *dst.FuncDecl) {
+	searchGinFunc(rh.Asts(), "Context", handleCall, handleFn, nil, func(da *ast.Ast, sd *dst.FuncDecl, vs map[string]string) {
 		parseFuncHandle(rh.api, da, nil, sd, cmt)
 	})
 }

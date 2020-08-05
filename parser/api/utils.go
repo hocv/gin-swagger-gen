@@ -8,6 +8,7 @@ import (
 	"github.com/hocv/gin-swagger-gen/ast"
 )
 
+// splitDot split string with dot
 func splitDot(str string) (string, string) {
 	arr := strings.Split(str, ".")
 	if len(arr) != 2 {
@@ -30,6 +31,7 @@ func fmtRoutePath(r string) string {
 	return strings.Join(arr, "/")
 }
 
+// routePathParams params in path. "/user/:id"
 func routePathParams(r string) []string {
 	r = strings.Trim(r, "\"")
 	arr := strings.Split(r, "/")
@@ -54,7 +56,15 @@ func copyMap(m map[string]string) map[string]string {
 	return cp
 }
 
-func searchGinFunc(asts *ast.Asts, ginType, funcCall, funcName string, fn func(da *ast.Ast, fd *dst.FuncDecl)) {
+// searchGinFunc search function with gin params
+// ginType: Engine, Context. srv.ginHandel(c), srv is funcCall, ginHandel is funcName
+func searchGinFunc(asts *ast.Asts,
+	ginType string,
+	funcCall string,
+	funcName string,
+	params []string,
+	fn func(da *ast.Ast, fd *dst.FuncDecl, vs map[string]string)) {
+
 	for a, decls := range asts.Func(funcName) {
 		alias := a.DefaultImport(ginPkg, "gin")
 		ginCtx := fmt.Sprintf("*%s.%s", alias, ginType)
@@ -63,8 +73,16 @@ func searchGinFunc(asts *ast.Asts, ginType, funcCall, funcName string, fn func(d
 				continue
 			}
 
+			vs := make(map[string]string)
+			if params != nil {
+				for i, s := range ast.GetFuncParamList(decl) {
+					vs[s] = params[i]
+				}
+			}
+
+			// function
 			if len(funcCall) == 0 {
-				fn(a, decl)
+				fn(a, decl, vs)
 				continue
 			}
 
@@ -72,12 +90,13 @@ func searchGinFunc(asts *ast.Asts, ginType, funcCall, funcName string, fn func(d
 				continue
 			}
 
+			// method
 			for _, field := range decl.Recv.List {
 				ident, ok := field.Type.(*dst.Ident)
 				if !ok || ident.Name != funcCall {
 					continue
 				}
-				fn(a, decl)
+				fn(a, decl, vs)
 				return
 			}
 		}

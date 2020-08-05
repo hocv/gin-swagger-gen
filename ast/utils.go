@@ -79,6 +79,19 @@ func GetFuncParams(decl *dst.FuncDecl) map[string]string {
 	return vt
 }
 
+func GetFuncParamList(decl *dst.FuncDecl) (ps []string) {
+	for _, field := range decl.Type.Params.List {
+		t := filedType(field.Type)
+		if len(t) == 0 {
+			continue
+		}
+		for _, name := range field.Names {
+			ps = append(ps, name.Name)
+		}
+	}
+	return
+}
+
 func filedType(filed interface{}) string {
 	switch filed.(type) {
 	case *dst.SelectorExpr:

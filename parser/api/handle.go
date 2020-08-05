@@ -10,7 +10,7 @@ type Handle interface {
 	Type() string
 	Cond(sel string) bool
 	Parser(val string, vat string, call *dst.CallExpr, vs map[string]string)
-	Inter(a *ast.Ast, decl *dst.FuncDecl)
+	Inter(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string)
 }
 
 func parseStmtList(stmts []dst.Stmt, vars map[string]string, hdl Handle) {
@@ -53,6 +53,15 @@ func parseStmtItem(stmt interface{}, vars map[string]string, hdl Handle) {
 		if !ok {
 			hSel = v
 		}
-		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, hdl.Inter)
+		call, err := ast.CallExprByVarName(stmt, v)
+		if err != nil {
+			continue
+		}
+		ps := make([]string, 0)
+		for _, arg := range call.Args {
+			ps = append(ps, ast.ExprToStr(arg))
+		}
+
+		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, ps, hdl.Inter)
 	}
 }

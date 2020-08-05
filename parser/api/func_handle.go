@@ -41,6 +41,7 @@ func parseFuncHandle(api *Api, dstAst *ast.Ast, dstDecl *dst.FuncDecl, decl *dst
 	}
 
 	parseStmtList(decl.Body.List, fh.Vars, fh)
+	dstAst.Dirty()
 	fh.Cmt.AddToFunc(fh.DstDecl)
 }
 
@@ -62,7 +63,7 @@ func (fh *funcHandle) Parser(val string, vat string, call *dst.CallExpr, vs map[
 	ginParsers[sel](fh.Cmt, vs, call)
 }
 
-func (fh *funcHandle) Inter(a *ast.Ast, decl *dst.FuncDecl) {
+func (fh *funcHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string) {
 	parseFuncHandle(fh.api, a, fh.DstDecl, decl, fh.Cmt)
 }
 

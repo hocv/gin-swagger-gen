@@ -90,12 +90,14 @@ func NewInfoParse(opt InfoOption) *InfoParse {
 }
 
 func (p *InfoParse) Parse(asts ast.Asts) error {
+	var mainPkg *ast.Ast
 	var mainFn *dst.FuncDecl
 	var err error
 	for _, a := range asts {
 		if a.Pkg() != "main" {
 			continue
 		}
+		mainPkg = a
 		fds := a.Func("main")
 		if len(fds) == 0 {
 			return errors.New("not find main function")
@@ -104,7 +106,7 @@ func (p *InfoParse) Parse(asts ast.Asts) error {
 		break
 	}
 
-	if mainFn == nil {
+	if mainFn == nil || mainPkg == nil {
 		return errors.Wrap(err, "main func")
 	}
 
@@ -127,5 +129,6 @@ func (p *InfoParse) Parse(asts ast.Asts) error {
 		}
 		mainFn.Decs.Start.Append(desc)
 	}
+	mainPkg.Dirty()
 	return nil
 }
