@@ -16,8 +16,9 @@ var ErrNotFind = errors.New("not find error")
 
 // Ast ast
 type Ast struct {
-	path string    // file path
-	file *dst.File // dst file
+	dirty bool
+	path  string    // file path
+	file  *dst.File // dst file
 }
 
 // New ast. path : path of go file
@@ -29,13 +30,21 @@ func New(path string) (*Ast, error) {
 	}
 
 	return &Ast{
-		path: path,
-		file: file,
+		path:  path,
+		file:  file,
+		dirty: false,
 	}, nil
+}
+
+func (a *Ast) Dirty() {
+	a.dirty = true
 }
 
 // Save file
 func (a *Ast) Save() error {
+	if !a.dirty {
+		return nil
+	}
 	var buf bytes.Buffer
 	if err := decorator.Fprint(&buf, a.file); err != nil {
 		return err
