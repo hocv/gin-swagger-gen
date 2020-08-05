@@ -103,6 +103,10 @@ func (as Asts) Imported(pkg string) Asts {
 
 // scanDir scan go file and parse to ast
 func scanDir(dir string) (asts []*Ast) {
+	if strings.Contains(dir, "vendor") {
+		return
+	}
+
 	fs, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return
