@@ -8,20 +8,22 @@ import (
 )
 
 type routeHandle struct {
-	api      *Api
-	initExpr string
-	Vars     map[string]string
-	RouteMap map[string]string
-	RouteFns map[string]routeFunc
+	api         *Api
+	initExpr    string
+	Vars        map[string]string
+	RouteMap    map[string]string
+	RouteFns    map[string]routeFunc
+	specifyFunc string
 }
 
-func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[string]string, initExpr string) {
+func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[string]string, initExpr string, specifyFunc string) {
 	r := &routeHandle{
-		api:      api,
-		initExpr: initExpr,
-		Vars:     make(map[string]string),
-		RouteMap: copyMap(routeMap),
-		RouteFns: map[string]routeFunc{},
+		api:         api,
+		initExpr:    initExpr,
+		Vars:        make(map[string]string),
+		RouteMap:    copyMap(routeMap),
+		RouteFns:    map[string]routeFunc{},
+		specifyFunc: specifyFunc,
 	}
 
 	// vars in function param
@@ -77,7 +79,7 @@ func (rh *routeHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vars map[string]str
 			delete(rm, v)
 		}
 	}
-	parseRoute(rh.api, a, decl, rm, rh.initExpr)
+	parseRoute(rh.api, a, decl, rm, rh.initExpr, rh.specifyFunc)
 }
 
 func (rh *routeHandle) parseGroup(val string, cal string, call *dst.CallExpr) {
@@ -111,11 +113,16 @@ func (rh *routeHandle) parseMethod(val string, cal string, call *dst.CallExpr) {
 	// first arg of function is route path
 	firstArg := call.Args[0].(*dst.BasicLit).Value
 	// just use last handle function, middle functions maybe middleware
-	lastArg := ast.ExprToStr(call.Args[len(call.Args)-1])
+	lastArg := ast.ToStr(call.Args[len(call.Args)-1])
 	handleCall, handleFn := splitDot(lastArg)
 	v, ok := rh.Vars[handleCall]
 	if ok {
 		handleCall = v
+	}
+
+	// if specify the function, ignore others
+	if len(rh.specifyFunc) > 0 && rh.specifyFunc != handleFn {
+		return
 	}
 
 	sel, ok := call.Fun.(*dst.SelectorExpr)

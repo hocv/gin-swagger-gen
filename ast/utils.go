@@ -51,6 +51,8 @@ func CheckSelectorExpr(stmt interface{}, expr string) bool {
 	}
 }
 
+// GetFuncParamByType get param name of function by type
+// func Test(a, b string) : string is type , a and b is name
 func GetFuncParamByType(decl *dst.FuncDecl, argType string) []string {
 	var names []string
 	for _, field := range decl.Type.Params.List {
@@ -65,6 +67,9 @@ func GetFuncParamByType(decl *dst.FuncDecl, argType string) []string {
 	return names
 }
 
+// GetFuncParams get params of function,
+// return map[name]type
+// func Test(a, b string) -> {"a":"string","b":"string")
 func GetFuncParams(decl *dst.FuncDecl) map[string]string {
 	vt := make(map[string]string)
 	for _, field := range decl.Type.Params.List {
@@ -79,6 +84,8 @@ func GetFuncParams(decl *dst.FuncDecl) map[string]string {
 	return vt
 }
 
+// GetFuncParamList get param name of function
+// func Test(a, b string) -> ["a","b"]
 func GetFuncParamList(decl *dst.FuncDecl) (ps []string) {
 	for _, field := range decl.Type.Params.List {
 		t := filedType(field.Type)
@@ -117,11 +124,13 @@ func GetFuncVars(decl *dst.FuncDecl) map[string]string {
 	return vars
 }
 
+// GetVars get vars from statement
+// return map[name]type
 func GetVars(stmt interface{}) map[string]string {
 	vars := make(map[string]string)
 	switch stmt.(type) {
 	case *dst.ExprStmt:
-		vars["_"] = ExprToStr(stmt.(*dst.ExprStmt).X)
+		vars["_"] = ToStr(stmt.(*dst.ExprStmt).X)
 	case *dst.DeclStmt:
 		genDecl, ok := stmt.(*dst.DeclStmt).Decl.(*dst.GenDecl)
 		if !ok {
@@ -140,12 +149,12 @@ func GetVars(stmt interface{}) map[string]string {
 			if !ok {
 				continue
 			}
-			vpType := ExprToStr(vp.Type)
+			vpType := ToStr(vp.Type)
 			for _, name := range vp.Names {
 				vars[name.Name] = vpType
 			}
 			for _, value := range vp.Values {
-				valueStr := ExprToStr(value)
+				valueStr := ToStr(value)
 				for _, vpName := range vp.Names {
 					vars[vpName.Name] = valueStr
 				}
@@ -154,35 +163,41 @@ func GetVars(stmt interface{}) map[string]string {
 	case *dst.AssignStmt:
 		assign := stmt.(*dst.AssignStmt)
 		for idx, rh := range assign.Rhs {
-			lhName := assign.Lhs[idx].(*dst.Ident).Name
-			vars[lhName] = ExprToStr(rh)
+			ident, ok := assign.Lhs[idx].(*dst.Ident)
+			if !ok {
+				continue
+			}
+			lhName := ident.Name
+			vars[lhName] = ToStr(rh)
 		}
 	}
 	return vars
 }
 
-func ExprToStr(stmt interface{}) string {
+// ToStr convert to string
+func ToStr(stmt interface{}) string {
 	switch stmt.(type) {
 	case *dst.UnaryExpr:
-		return ExprToStr(stmt.(*dst.UnaryExpr).X)
+		return ToStr(stmt.(*dst.UnaryExpr).X)
 	case *dst.CompositeLit:
-		return ExprToStr(stmt.(*dst.CompositeLit).Type)
+		return ToStr(stmt.(*dst.CompositeLit).Type)
 	case *dst.CallExpr:
-		return ExprToStr(stmt.(*dst.CallExpr).Fun)
+		return ToStr(stmt.(*dst.CallExpr).Fun)
 	case *dst.SelectorExpr:
 		sel := stmt.(*dst.SelectorExpr)
-		return fmt.Sprintf("%s.%s", sel.X.(*dst.Ident).Name, sel.Sel.Name)
+		return fmt.Sprintf("%s.%s", ToStr(sel.X), sel.Sel.Name)
 	case *dst.BasicLit:
 		return stmt.(*dst.BasicLit).Kind.String()
 	case *dst.Ident:
 		return stmt.(*dst.Ident).Name
 	case *dst.StarExpr:
-		return fmt.Sprintf("*%s", ExprToStr(stmt.(*dst.StarExpr).X))
+		return fmt.Sprintf("*%s", ToStr(stmt.(*dst.StarExpr).X))
 	}
 	return ""
 }
 
-func CallExprByVarName(stmt interface{}, varName string) (*dst.CallExpr, error) {
+// GetCallExprByVarName get CallExpr from stmt by var name
+func GetCallExprByVarName(stmt interface{}, varName string) (*dst.CallExpr, error) {
 	switch stmt.(type) {
 	case *dst.ExprStmt:
 		call, ok := stmt.(*dst.ExprStmt).X.(*dst.CallExpr)

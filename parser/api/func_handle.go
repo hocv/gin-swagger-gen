@@ -176,7 +176,7 @@ func parseBind(bindType string) parser {
 		}
 		cmt.Accept = append(cmt.Accept, bindType)
 
-		arg := ast.ExprToStr(call.Args[0])
+		arg := ast.ToStr(call.Args[0])
 		body, ok := vars[arg]
 		if !ok {
 			return
@@ -196,7 +196,7 @@ func parseQuery(queryType string) parser {
 		}
 		qp := queryParam{}
 		if strings.Contains(queryType, "Bind") {
-			arg := ast.ExprToStr(call.Args[0])
+			arg := ast.ToStr(call.Args[0])
 			body, ok := vars[arg]
 			if !ok {
 				return
@@ -238,7 +238,7 @@ func parseProduce(produceType string) parser {
 		}
 		cmt.Produce = append(cmt.Produce, produceType)
 
-		state := ast.ExprToStr(call.Args[0])
+		state := ast.ToStr(call.Args[0])
 		code, ok := stateCode[state]
 		if !ok {
 			bl, ok := call.Args[0].(*dst.BasicLit)
@@ -258,7 +258,7 @@ func parseProduce(produceType string) parser {
 			Type: produceType,
 		}
 		if produceType != "string" {
-			lastArg := ast.ExprToStr(call.Args[1])
+			lastArg := ast.ToStr(call.Args[1])
 			val, ok := vars[lastArg]
 			if !ok {
 				return

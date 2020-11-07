@@ -11,6 +11,7 @@ import (
 
 var (
 	searchDir       = kingpin.Flag("dir", "Directory you want to pars").Short('d').Default("./").ExistingDir()
+	specifyFunc     = kingpin.Flag("func.name", "specify the function to add comment").Short('f').String()
 	apiInfoDisable  = kingpin.Flag("info.disable", "pars api info").Default("false").Bool()
 	apiInfoAll      = kingpin.Flag("info.all", "api info all").Default("false").Bool()
 	apiInfoLicense  = kingpin.Flag("info.license", "api info license").Default("false").Bool()
@@ -37,7 +38,7 @@ func main() {
 		infoParser := parser.NewInfoParse(opt)
 		g.AddParser(infoParser)
 	}
-	g.AddParser(api.NewApiParse())
+	g.AddParser(api.NewApiParse(*specifyFunc))
 
 	if err := g.Parse(); err != nil {
 		log.Println(err)

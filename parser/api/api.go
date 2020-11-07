@@ -9,11 +9,14 @@ import (
 const ginPkg = "github.com/gin-gonic/gin"
 
 type Api struct {
-	asts *ast.Asts
+	asts        *ast.Asts
+	specifyFunc string
 }
 
-func NewApiParse() *Api {
-	return &Api{}
+func NewApiParse(specifyFunc string) *Api {
+	return &Api{
+		specifyFunc: specifyFunc,
+	}
 }
 
 func (api *Api) Parse(asts ast.Asts) error {
@@ -22,7 +25,7 @@ func (api *Api) Parse(asts ast.Asts) error {
 	ginFn := func(a *ast.Ast, expr string) {
 		fds := a.FuncWithSelector(expr)
 		for _, decl := range fds {
-			parseRoute(api, a, decl, nil, expr)
+			parseRoute(api, a, decl, nil, expr, api.specifyFunc)
 		}
 	}
 

@@ -36,7 +36,7 @@ func parseStmtItem(stmt interface{}, vars map[string]string, hdl Handle) {
 		_, sel := splitDot(t)
 
 		if hdl.Cond(sel) {
-			call, err := ast.CallExprByVarName(stmt, v)
+			call, err := ast.GetCallExprByVarName(stmt, v)
 			if err != nil {
 				continue
 			}
@@ -53,13 +53,13 @@ func parseStmtItem(stmt interface{}, vars map[string]string, hdl Handle) {
 		if !ok {
 			hSel = v
 		}
-		call, err := ast.CallExprByVarName(stmt, v)
+		call, err := ast.GetCallExprByVarName(stmt, v)
 		if err != nil {
 			continue
 		}
 		ps := make([]string, 0)
 		for _, arg := range call.Args {
-			ps = append(ps, ast.ExprToStr(arg))
+			ps = append(ps, ast.ToStr(arg))
 		}
 
 		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, ps, hdl.Inter)
