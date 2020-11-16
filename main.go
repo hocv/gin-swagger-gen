@@ -23,6 +23,9 @@ func main() {
 	kingpin.Parse()
 
 	g := gen.New(*searchDir)
+	if len(*specifyFunc) > 0 {
+		*apiInfoDisable = false
+	}
 	if *apiInfoDisable {
 		if *apiInfoAll {
 			*apiInfoLicense = true

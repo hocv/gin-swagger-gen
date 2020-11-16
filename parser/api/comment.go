@@ -26,7 +26,7 @@ type queryParam struct {
 
 func (q queryParam) Decs() string {
 	if len(q.Default) > 0 {
-		return fmt.Sprintf("// @Param %s query string true \"%s default %s\"", q.Var, q.Var, q.Default)
+		return fmt.Sprintf("// @Param %s query string false \"%s default %s\"", q.Var, q.Var, q.Default)
 	}
 	return fmt.Sprintf("// @Param %s query string true \"%s\"", q.Var, q.Var)
 }
@@ -40,7 +40,7 @@ type formParam struct {
 
 func (f formParam) Decs() string {
 	if len(f.Default) > 0 {
-		return fmt.Sprintf("// @Param %s formData %s true \"%s default %s\"", f.Var, f.Type, f.Var, f.Default)
+		return fmt.Sprintf("// @Param %s formData %s false \"%s default %s\"", f.Var, f.Type, f.Var, f.Default)
 	}
 	return fmt.Sprintf("// @Param %s formData %s true \"%s\"", f.Var, f.Type, f.Var)
 }
