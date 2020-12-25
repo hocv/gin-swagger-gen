@@ -130,10 +130,12 @@ func (rh *routeHandle) parseMethod(val string, cal string, call *dst.CallExpr) {
 		return
 	}
 
+	routePath := routeBase + fmtRoutePath(firstArg)
+
 	cmt := &comment{
 		Summary:     handleFn,
-		RoutePath:   routeBase + fmtRoutePath(firstArg),
-		PathParams:  routePathParams(firstArg),
+		RoutePath:   routePath,
+		PathParams:  routePathParams(routePath),
 		RouteMethod: strings.ToLower(sel.Sel.Name),
 	}
 	searchGinFunc(rh.Asts(), "Context", handleCall, handleFn, nil, func(da *ast.Ast, sd *dst.FuncDecl, vs map[string]string) {

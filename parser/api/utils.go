@@ -31,14 +31,15 @@ func fmtRoutePath(r string) string {
 	return strings.Join(arr, "/")
 }
 
-// routePathParams params in path. "/user/:id"
+// routePathParams params in path. "/user/{id}"
 func routePathParams(r string) []string {
 	r = strings.Trim(r, "\"")
 	arr := strings.Split(r, "/")
 	var params []string
 	for _, s := range arr {
-		if strings.HasPrefix(s, ":") {
-			trim := strings.Trim(s, ":")
+		if strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") {
+			trim := strings.Trim(s, "{")
+			trim = strings.Trim(trim, "}")
 			params = append(params, trim)
 		}
 	}
