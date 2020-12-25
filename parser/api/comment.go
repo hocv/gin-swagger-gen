@@ -65,6 +65,7 @@ func (r resp) Decs() string {
 // comment
 type comment struct {
 	Summary     string
+	Tags        string
 	Description string
 	Accept      []string
 	Produce     []string
@@ -82,6 +83,9 @@ func (c *comment) Decs() []string {
 	strs := []string{
 		fmt.Sprintf("// @Summary %s", c.Summary),
 		fmt.Sprintf("// @Description %s", c.Summary),
+	}
+	if len(c.Tags) > 0 {
+		strs = append(strs, fmt.Sprintf("// @Tags %s", c.Tags))
 	}
 	if len(c.Accept) > 0 {
 		strs = append(strs, trimAndJoin("Accept", c.Accept))
@@ -149,6 +153,8 @@ func (c *comment) parseComment(cmt string) {
 		if len(remainder) > 0 {
 			c.Produce = append(c.Produce, strings.Split(remainder, ",")...)
 		}
+	case "@tags":
+		c.Tags = remainder
 	}
 }
 
