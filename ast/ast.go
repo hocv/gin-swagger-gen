@@ -6,34 +6,56 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
 	"github.com/pkg/errors"
 )
 
-var ErrNotFind = errors.New("not find error")
+var ErrNotFind = errors.New("not found")
 
 // Ast ast
 type Ast struct {
-	dirty bool
-	path  string    // file path
-	file  *dst.File // dst file
+	dirty      bool
+	src        string                     // file name or source
+	file       *dst.File                  // dst file
+	pkg        string                     // package name
+	globalVars map[string]string          // global vars
+	imports    map[string]string          // import
+	types      map[string]string          // types
+	funcs      map[string]*dst.FuncDecl   // functions
+	structs    map[string]*dst.StructType // structs
 }
 
-// New ast. path : path of go file
-func New(path string) (*Ast, error) {
+// New ast. src : path of go file or source
+func New(src string) (*Ast, error) {
 	fileSet := token.NewFileSet()
-	file, err := decorator.ParseFile(fileSet, path, nil, parser.ParseComments)
+	var file *dst.File
+	var err error
+
+	if filepath.Ext(src) == ".go" {
+		file, err = decorator.ParseFile(fileSet, src, nil, parser.ParseComments)
+	} else {
+		file, err = decorator.ParseFile(fileSet, "", src, parser.ParseComments)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &Ast{
-		path:  path,
-		file:  file,
-		dirty: false,
-	}, nil
+	a := &Ast{
+		src:        src,
+		file:       file,
+		dirty:      false,
+		globalVars: map[string]string{},
+		imports:    map[string]string{},
+		types:      map[string]string{},
+		funcs:      map[string]*dst.FuncDecl{},
+		structs:    map[string]*dst.StructType{},
+	}
+	a.parse()
+	return a, nil
 }
 
 func (a *Ast) Dirty() {
@@ -42,40 +64,76 @@ func (a *Ast) Dirty() {
 
 // Save file
 func (a *Ast) Save() error {
-	if !a.dirty {
+	if !a.dirty || filepath.Ext(a.src) != ".go" {
 		return nil
 	}
 	var buf bytes.Buffer
 	if err := decorator.Fprint(&buf, a.file); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(a.path, buf.Bytes(), 0666)
+	return ioutil.WriteFile(a.src, buf.Bytes(), 0666)
 }
 
 // Pkg package name
 func (a *Ast) Pkg() string {
-	return a.file.Name.String()
+	return a.pkg
+}
+
+func (a *Ast) parse() {
+	a.pkg = a.file.Name.String()
+
+	for _, spec := range a.file.Imports {
+		a.imports[spec.Path.Value] = spec.Name.String()
+	}
+
+	for _, decl := range a.file.Decls {
+		switch decl.(type) {
+		case *dst.FuncDecl:
+			fn := decl.(*dst.FuncDecl)
+			a.funcs[fn.Name.String()] = fn
+		case *dst.GenDecl:
+			gd := decl.(*dst.GenDecl)
+			for _, spec := range gd.Specs {
+				switch spec.(type) {
+				case *dst.TypeSpec:
+					ts := spec.(*dst.TypeSpec)
+					tn := ts.Name.String()
+					switch ts.Type.(type) {
+					case *dst.StructType:
+						a.structs[tn] = ts.Type.(*dst.StructType)
+					case *dst.Ident:
+						a.types[tn] = ts.Type.(*dst.Ident).Name
+					case *dst.ArrayType:
+						at, ok := ts.Type.(*dst.ArrayType).Elt.(*dst.Ident)
+						if ok {
+							a.types[tn] = fmt.Sprintf("[]%s", at.String())
+						}
+					case *dst.MapType:
+						mt := ts.Type.(*dst.MapType)
+						a.types[tn] = fmt.Sprintf("map[%s]%s", mt.Key.(*dst.Ident).String(), mt.Value.(*dst.Ident).String())
+					}
+				case *dst.ValueSpec:
+					for k, v := range GetVars(gd) {
+						a.globalVars[k] = v
+					}
+				}
+			}
+		}
+	}
 }
 
 // Func search function with name
-func (a *Ast) Func(name string) (fds []*dst.FuncDecl) {
-	for _, decl := range a.file.Decls {
-		fd, ok := decl.(*dst.FuncDecl)
-		if !ok || fd.Name.String() != name {
-			continue
-		}
-		fds = append(fds, fd)
+func (a *Ast) Func(name string) (*dst.FuncDecl, error) {
+	fd, ok := a.funcs[name]
+	if !ok {
+		return nil, ErrNotFind
 	}
-	return
+	return fd, nil
 }
 
 // FuncWithParam search functions with param
 func (a *Ast) FuncWithParam(param string) (fds []*dst.FuncDecl) {
-	for _, decl := range a.file.Decls {
-		fd, ok := decl.(*dst.FuncDecl)
-		if !ok {
-			continue
-		}
+	for _, fd := range a.funcs {
 		ps := GetFuncParamByType(fd, param)
 		if len(ps) > 0 {
 			fds = append(fds, fd)
@@ -87,11 +145,7 @@ func (a *Ast) FuncWithParam(param string) (fds []*dst.FuncDecl) {
 
 // FuncWithSelector search functions that contain this expr
 func (a *Ast) FuncWithSelector(expr string) (fds []*dst.FuncDecl) {
-	for _, decl := range a.file.Decls {
-		fd, ok := decl.(*dst.FuncDecl)
-		if !ok {
-			continue
-		}
+	for _, fd := range a.funcs {
 		for _, stmt := range fd.Body.List {
 			if CheckSelectorExpr(stmt, expr) {
 				fds = append(fds, fd)
@@ -102,45 +156,30 @@ func (a *Ast) FuncWithSelector(expr string) (fds []*dst.FuncDecl) {
 	return
 }
 
-func (a *Ast) Imported(path string) (alias string, exist bool) {
+func (a *Ast) Imported(path string) (string, bool) {
 	path = fmt.Sprintf("\"%s\"", path)
-	for _, spec := range a.file.Imports {
-		if spec.Path.Value != path {
-			continue
-		}
-		if spec.Name != nil {
-			alias = spec.Name.String()
-		}
-		exist = true
-		break
-	}
-	return
+	alias, ok := a.imports[path]
+	return alias, ok
 }
 
 func (a *Ast) DefaultImport(path string, value string) string {
 	path = fmt.Sprintf("\"%s\"", path)
-	for _, spec := range a.file.Imports {
-		if spec.Path.Value != path {
-			continue
-		}
-		if spec.Name != nil {
-			return spec.Name.String()
-		}
+	alias, ok := a.imports[path]
+	if !ok || alias == "<nil>" {
+		return value
 	}
-	return value
+	return alias
 }
 
 // GlobalVars global vars in file
 func (a *Ast) GlobalVars() map[string]string {
-	vars := make(map[string]string)
-	for _, decl := range a.file.Decls {
-		gd, ok := decl.(*dst.GenDecl)
-		if !ok || gd.Tok != token.VAR {
-			continue
-		}
-		for k, v := range GetVars(gd) {
-			vars[k] = v
-		}
+	return a.imports
+}
+
+func (a *Ast) Struct(name string) (*dst.StructType, error) {
+	st, ok := a.structs[name]
+	if !ok {
+		return nil, ErrNotFind
 	}
-	return vars
+	return st, nil
 }

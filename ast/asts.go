@@ -11,27 +11,33 @@ import (
 
 const routineNum = 20
 
-type Asts []*Ast
+type Asts struct {
+	as map[string][]*Ast
+}
 
 func NewAsts(dir string) Asts {
 	arr := scanDir(dir)
-	asts := make([]*Ast, 0)
-	for _, as := range arr {
-		asts = append(asts, as)
+	as := make(map[string][]*Ast, 0)
+	for _, a := range arr {
+		as[a.pkg] = append(as[a.pkg], a)
 	}
-	return asts
+	return Asts{
+		as: as,
+	}
 }
 
-func (as Asts) Save() error {
-	for _, a := range as {
-		if err := a.Save(); err != nil {
-			return err
+func (a *Asts) Save() error {
+	for _, asts := range a.as {
+		for _, ast := range asts {
+			if err := ast.Save(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (as Asts) routine(astFn func(ast *Ast, m *sync.Mutex)) {
+func (a *Asts) routine(astFn func(ast *Ast, m *sync.Mutex)) {
 	m := sync.Mutex{}
 	w := sync.WaitGroup{}
 	w.Add(routineNum)
@@ -46,19 +52,23 @@ func (as Asts) routine(astFn func(ast *Ast, m *sync.Mutex)) {
 		}()
 	}
 
-	for _, ast := range as {
-		a := ast
-		ch <- a
+	for _, asts := range a.as {
+		for _, ast := range asts {
+			ch <- ast
+		}
 	}
 	close(ch)
 	w.Wait()
 }
 
 // Func search function by name
-func (as Asts) Func(name string) map[*Ast][]*dst.FuncDecl {
-	af := make(map[*Ast][]*dst.FuncDecl)
-	as.routine(func(ast *Ast, m *sync.Mutex) {
-		fds := ast.Func(name)
+func (a *Asts) Func(name string) map[*Ast]*dst.FuncDecl {
+	af := make(map[*Ast]*dst.FuncDecl)
+	a.routine(func(ast *Ast, m *sync.Mutex) {
+		fds, err := ast.Func(name)
+		if err != nil {
+			return
+		}
 		m.Lock()
 		af[ast] = fds
 		m.Unlock()
@@ -66,9 +76,24 @@ func (as Asts) Func(name string) map[*Ast][]*dst.FuncDecl {
 	return af
 }
 
-func (as Asts) FuncWithSelector(expr string) map[*Ast][]*dst.FuncDecl {
+func (a *Asts) FuncInPkg(funcName, pkgName string) (*Ast, *dst.FuncDecl, error) {
+	asts, ok := a.as[pkgName]
+	if !ok {
+		return nil, nil, ErrNotFind
+	}
+	for _, ast := range asts {
+		fd, err := ast.Func(funcName)
+		if err != nil {
+			continue
+		}
+		return ast, fd, nil
+	}
+	return nil, nil, ErrNotFind
+}
+
+func (a *Asts) FuncWithSelector(expr string) map[*Ast][]*dst.FuncDecl {
 	af := make(map[*Ast][]*dst.FuncDecl)
-	as.routine(func(ast *Ast, m *sync.Mutex) {
+	a.routine(func(ast *Ast, m *sync.Mutex) {
 		fs := ast.FuncWithSelector(expr)
 		m.Lock()
 		af[ast] = fs
@@ -77,9 +102,9 @@ func (as Asts) FuncWithSelector(expr string) map[*Ast][]*dst.FuncDecl {
 	return af
 }
 
-func (as Asts) FuncWithParam(param string) map[*Ast][]*dst.FuncDecl {
+func (a *Asts) FuncWithParam(param string) map[*Ast][]*dst.FuncDecl {
 	af := make(map[*Ast][]*dst.FuncDecl)
-	as.routine(func(ast *Ast, m *sync.Mutex) {
+	a.routine(func(ast *Ast, m *sync.Mutex) {
 		fs := ast.FuncWithParam(param)
 		m.Lock()
 		af[ast] = fs
@@ -88,17 +113,31 @@ func (as Asts) FuncWithParam(param string) map[*Ast][]*dst.FuncDecl {
 	return af
 }
 
-func (as Asts) Imported(pkg string) Asts {
-	asts := make([]*Ast, 0)
-	as.routine(func(ast *Ast, m *sync.Mutex) {
+func (a *Asts) Imported(pkg string) []*Ast {
+	as := make([]*Ast, 0)
+	a.routine(func(ast *Ast, m *sync.Mutex) {
 		_, b := ast.Imported(pkg)
 		if b {
 			m.Lock()
-			asts = append(asts, ast)
+			as = append(as, ast)
 			m.Unlock()
 		}
 	})
-	return asts
+	return as
+}
+
+func (a *Asts) GlobalVarInPkg(pkg string) map[string]string {
+	asts, ok := a.as[pkg]
+	if !ok {
+		return nil
+	}
+	vars := make(map[string]string)
+	for _, ast := range asts {
+		for k, v := range ast.GlobalVars() {
+			vars[k] = v
+		}
+	}
+	return vars
 }
 
 // scanDir scan go file and parse to ast

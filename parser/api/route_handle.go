@@ -8,22 +8,20 @@ import (
 )
 
 type routeHandle struct {
-	api         *Api
-	initExpr    string
-	Vars        map[string]string
-	RouteMap    map[string]string
-	RouteFns    map[string]routeFunc
-	specifyFunc string
+	api      *Api
+	initExpr string
+	Vars     map[string]string
+	RouteMap map[string]string
+	RouteFns map[string]routeFunc
 }
 
-func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[string]string, initExpr string, specifyFunc string) {
+func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[string]string, initExpr string) {
 	r := &routeHandle{
-		api:         api,
-		initExpr:    initExpr,
-		Vars:        make(map[string]string),
-		RouteMap:    copyMap(routeMap),
-		RouteFns:    map[string]routeFunc{},
-		specifyFunc: specifyFunc,
+		api:      api,
+		initExpr: initExpr,
+		Vars:     make(map[string]string),
+		RouteMap: copyMap(routeMap),
+		RouteFns: map[string]routeFunc{},
 	}
 
 	// vars in function param
@@ -32,7 +30,7 @@ func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[stri
 	}
 
 	// global vars
-	for k, v := range dstAst.GlobalVars() {
+	for k, v := range api.asts.GlobalVarInPkg(dstAst.Pkg()) {
 		r.Vars[k] = v
 	}
 
@@ -49,7 +47,6 @@ func parseRoute(api *Api, dstAst *ast.Ast, decl *dst.FuncDecl, routeMap map[stri
 	for _, method := range []string{"POST", "GET", "DELETE", "PATCH", "PUT", "OPTIONS", "HEAD", "Any"} {
 		r.RouteFns[method] = r.parseMethod
 	}
-
 	parseStmtList(decl.Body.List, r.Vars, r)
 }
 
@@ -71,7 +68,7 @@ func (rh *routeHandle) Parser(val string, vat string, call *dst.CallExpr, vs map
 	rh.RouteFns[sel](val, cal, call)
 }
 
-func (rh *routeHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vars map[string]string) {
+func (rh *routeHandle) Recursive(a *ast.Ast, decl *dst.FuncDecl, vars map[string]string) {
 	rm := copyMap(rh.RouteMap)
 	for k, v := range vars {
 		if vv, ok := rh.RouteMap[v]; ok {
@@ -79,7 +76,7 @@ func (rh *routeHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vars map[string]str
 			delete(rm, v)
 		}
 	}
-	parseRoute(rh.api, a, decl, rm, rh.initExpr, rh.specifyFunc)
+	parseRoute(rh.api, a, decl, rm, rh.initExpr)
 }
 
 func (rh *routeHandle) parseGroup(val string, cal string, call *dst.CallExpr) {
@@ -121,7 +118,7 @@ func (rh *routeHandle) parseMethod(val string, cal string, call *dst.CallExpr) {
 	}
 
 	// if specify the function, ignore others
-	if len(rh.specifyFunc) > 0 && rh.specifyFunc != handleFn {
+	if len(rh.api.specifyFunc) > 0 && rh.api.specifyFunc != handleFn {
 		return
 	}
 

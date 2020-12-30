@@ -5,12 +5,14 @@ import (
 	"github.com/hocv/gin-swagger-gen/ast"
 )
 
+type recursive func(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string)
+
 type Handle interface {
 	Asts() *ast.Asts
 	Type() string
 	Cond(sel string) bool
 	Parser(val string, vat string, call *dst.CallExpr, vs map[string]string)
-	Inter(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string)
+	Recursive(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string)
 }
 
 func parseStmtList(stmts []dst.Stmt, vars map[string]string, hdl Handle) {
@@ -61,7 +63,6 @@ func parseStmtItem(stmt interface{}, vars map[string]string, hdl Handle) {
 		for _, arg := range call.Args {
 			ps = append(ps, ast.ToStr(arg))
 		}
-
-		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, ps, hdl.Inter)
+		searchGinFunc(hdl.Asts(), hdl.Type(), hSel, hName, ps, hdl.Recursive)
 	}
 }

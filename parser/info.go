@@ -4,11 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dave/dst"
-
 	"github.com/hocv/gin-swagger-gen/ast"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -90,45 +86,29 @@ func NewInfoParse(opt InfoOption) *InfoParse {
 }
 
 func (p *InfoParse) Parse(asts ast.Asts) error {
-	var mainPkg *ast.Ast
-	var mainFn *dst.FuncDecl
-	var err error
-	for _, a := range asts {
-		if a.Pkg() != "main" {
-			continue
-		}
-		mainPkg = a
-		fds := a.Func("main")
-		if len(fds) == 0 {
-			return errors.New("not find main function")
-		}
-		mainFn = fds[0]
-		break
+	mainAst, funDecl, err := asts.FuncInPkg("main", "main")
+	if err != nil {
+		return err
 	}
-
-	if mainFn == nil || mainPkg == nil {
-		return errors.Wrap(err, "main func")
-	}
-
-	commons := mainFn.Decs.Start.All()
+	commons := funDecl.Decs.Start.All()
 	commonMap := make(map[string]string, len(commons))
 	for _, common := range commons {
 		trim := strings.TrimLeft(common, "// @")
 		split := strings.Split(trim, " ")
 		commonMap[split[0]] = common
 	}
-	mainFn.Decs.Start.Clear()
+	funDecl.Decs.Start.Clear()
 	for _, info := range p.infos {
 		if common, ok := commonMap[info]; ok {
-			mainFn.Decs.Start.Append(common)
+			funDecl.Decs.Start.Append(common)
 			continue
 		}
 		desc := fmt.Sprintf("// @%s", info)
 		if v, ok := defaultValue[info]; ok {
 			desc = fmt.Sprintf("%s %s", desc, v)
 		}
-		mainFn.Decs.Start.Append(desc)
+		funDecl.Decs.Start.Append(desc)
 	}
-	mainPkg.Dirty()
+	mainAst.Dirty()
 	return nil
 }

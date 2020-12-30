@@ -63,7 +63,7 @@ func (fh *funcHandle) Parser(val string, vat string, call *dst.CallExpr, vs map[
 	ginParsers[sel](fh.Cmt, vs, call)
 }
 
-func (fh *funcHandle) Inter(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string) {
+func (fh *funcHandle) Recursive(a *ast.Ast, decl *dst.FuncDecl, vs map[string]string) {
 	parseFuncHandle(fh.api, a, fh.DstDecl, decl, fh.Cmt)
 }
 

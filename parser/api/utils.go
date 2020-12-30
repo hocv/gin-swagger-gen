@@ -58,48 +58,41 @@ func copyMap(m map[string]string) map[string]string {
 }
 
 // searchGinFunc search function with gin params
-// ginType: Engine, Context. srv.ginHandel(c), srv is funcCall, ginHandel is funcName
-func searchGinFunc(asts *ast.Asts,
-	ginType string,
-	funcCall string,
-	funcName string,
-	params []string,
-	fn func(da *ast.Ast, fd *dst.FuncDecl, vs map[string]string)) {
-
-	for a, decls := range asts.Func(funcName) {
+// ginType: Engine, Context.
+// srv.ginHandel(c), srv is funcCall, ginHandel is funcName
+func searchGinFunc(asts *ast.Asts, ginType string, funcCall string, funcName string, params []string, recur recursive) {
+	for a, decl := range asts.Func(funcName) {
 		alias := a.DefaultImport(ginPkg, "gin")
 		ginCtx := fmt.Sprintf("*%s.%s", alias, ginType)
-		for _, decl := range decls {
-			if len(ast.GetFuncParamByType(decl, ginCtx)) == 0 {
+		if len(ast.GetFuncParamByType(decl, ginCtx)) == 0 {
+			continue
+		}
+
+		vs := make(map[string]string)
+		if params != nil {
+			for i, s := range ast.GetFuncParamList(decl) {
+				vs[s] = params[i]
+			}
+		}
+
+		// function
+		if len(funcCall) == 0 {
+			recur(a, decl, vs)
+			continue
+		}
+
+		if decl.Recv == nil {
+			continue
+		}
+
+		// method
+		for _, field := range decl.Recv.List {
+			ident, ok := field.Type.(*dst.Ident)
+			if !ok || ident.Name != funcCall {
 				continue
 			}
-
-			vs := make(map[string]string)
-			if params != nil {
-				for i, s := range ast.GetFuncParamList(decl) {
-					vs[s] = params[i]
-				}
-			}
-
-			// function
-			if len(funcCall) == 0 {
-				fn(a, decl, vs)
-				continue
-			}
-
-			if decl.Recv == nil {
-				continue
-			}
-
-			// method
-			for _, field := range decl.Recv.List {
-				ident, ok := field.Type.(*dst.Ident)
-				if !ok || ident.Name != funcCall {
-					continue
-				}
-				fn(a, decl, vs)
-				return
-			}
+			recur(a, decl, vs)
+			return
 		}
 	}
 }

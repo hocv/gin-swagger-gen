@@ -66,7 +66,7 @@ func (r resp) Decs() string {
 type comment struct {
 	Summary     string
 	Tags        string
-	Description string
+	Description []string
 	Accept      []string
 	Produce     []string
 	RoutePath   string       // route path
@@ -82,10 +82,13 @@ type comment struct {
 func (c *comment) Decs() []string {
 	strs := []string{
 		fmt.Sprintf("// @Summary %s", c.Summary),
-		fmt.Sprintf("// @Description %s", c.Summary),
 	}
 	if len(c.Tags) > 0 {
 		strs = append(strs, fmt.Sprintf("// @Tags %s", c.Tags))
+	}
+	fmt.Println(len(c.Description))
+	for _, desc := range c.Description {
+		strs = append(strs, fmt.Sprintf("// @Description %s", desc))
 	}
 	if len(c.Accept) > 0 {
 		strs = append(strs, trimAndJoin("Accept", c.Accept))
@@ -144,7 +147,7 @@ func (c *comment) parseComment(cmt string) {
 	case "@summary":
 		c.Summary = remainder
 	case "@description":
-		c.Description = remainder
+		c.Description = append(c.Description, remainder)
 	case "@accept":
 		if len(remainder) > 0 {
 			c.Accept = append(c.Accept, strings.Split(remainder, ",")...)
@@ -155,6 +158,10 @@ func (c *comment) parseComment(cmt string) {
 		}
 	case "@tags":
 		c.Tags = remainder
+	default:
+		if !strings.HasPrefix(commentLine, "@") {
+			c.Description = append(c.Description, commentLine)
+		}
 	}
 }
 

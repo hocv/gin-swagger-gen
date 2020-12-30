@@ -145,19 +145,20 @@ func GetVars(stmt interface{}) map[string]string {
 			return vars
 		}
 		for _, spec := range genDecl.Specs {
-			vp, ok := spec.(*dst.ValueSpec)
-			if !ok {
-				continue
+			for k, v := range GetVars(spec) {
+				vars[k] = v
 			}
-			vpType := ToStr(vp.Type)
-			for _, name := range vp.Names {
-				vars[name.Name] = vpType
-			}
-			for _, value := range vp.Values {
-				valueStr := ToStr(value)
-				for _, vpName := range vp.Names {
-					vars[vpName.Name] = valueStr
-				}
+		}
+	case *dst.ValueSpec:
+		vs := stmt.(*dst.ValueSpec)
+		vpType := ToStr(vs.Type)
+		for _, name := range vs.Names {
+			vars[name.Name] = vpType
+		}
+		for _, value := range vs.Values {
+			valueStr := ToStr(value)
+			for _, vpName := range vs.Names {
+				vars[vpName.Name] = valueStr
 			}
 		}
 	case *dst.AssignStmt:
@@ -192,6 +193,11 @@ func ToStr(stmt interface{}) string {
 		return stmt.(*dst.Ident).Name
 	case *dst.StarExpr:
 		return fmt.Sprintf("*%s", ToStr(stmt.(*dst.StarExpr).X))
+	case *dst.ArrayType:
+		return fmt.Sprintf("[]%s", ToStr(stmt.(*dst.ArrayType).Elt))
+	case *dst.MapType:
+		mt := stmt.(*dst.MapType)
+		return fmt.Sprintf("map[%s]%s", mt.Key.(*dst.Ident).String(), mt.Value.(*dst.Ident).String())
 	}
 	return ""
 }
