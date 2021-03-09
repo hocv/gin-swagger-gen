@@ -10,24 +10,21 @@ go install github.com/hocv/gin-swagger-gen
 
 ## params
 
-| param         | short | default | desc                                 |
-| ------------- | ----- | ------- | ------------------------------------ |
-| dir           | d     | ./      | project root dir                     |
-| func.name     | f     | -       | specify the funcion to add comment   |
-| info.disable  | -     | false   | add comment add main function        |
-| info.all      | -     | false   | add all comment to main function     |
-| info.license  | -     | false   | add license comment to main function |
-| info.tags     | -     | false   | add tags comment to main function    |
-| info.security | -     | false   | add security coment to main function |
+| param      | short | default | desc                               |
+| ---------- | ----- | ------- | ---------------------------------- |
+| dir        | d     | ./      | project root dir                   |
+| func.name  | f     | -       | specify the funcion to add comment |
+| just.print | p     | false   | just print, no save to file        |
 
 ## features
 
-1. add comment to main function
-2. add comment to gin handler function
-   1. route, method
-   2. params in path, query, form
-   3. produce, status code
-   4. accept
+add comment to gin handler function
+
+1. route, method
+2. params in path, query, form
+3. produce, status code
+4. accept
+5. model composition in response. e.g. jsonresult.JSONResult{data=proto.Order}
 
 ## example
 
