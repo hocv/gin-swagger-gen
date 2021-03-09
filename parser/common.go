@@ -1,12 +1,28 @@
-package api
+package parser
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/dave/dst"
-	"github.com/hocv/gin-swagger-gen/ast"
 )
+
+func parseStmtList(stmts []dst.Stmt, vars map[string]string, fn func(stmt interface{}, vars map[string]string)) {
+	for _, stmt := range stmts {
+		switch stmt.(type) {
+		case *dst.IfStmt:
+			ifStmt := stmt.(*dst.IfStmt)
+			local := copyMap(vars)
+			fn(ifStmt.Init, local)
+			parseStmtList(ifStmt.Body.List, local, fn)
+		case *dst.BlockStmt:
+			local := copyMap(vars)
+			parseStmtList(stmt.(*dst.BlockStmt).List, local, fn)
+		default:
+			fn(stmt, vars)
+		}
+	}
+}
 
 // splitDot split string with dot
 func splitDot(str string) (string, string) {
@@ -55,44 +71,4 @@ func copyMap(m map[string]string) map[string]string {
 		cp[k] = v
 	}
 	return cp
-}
-
-// searchGinFunc search function with gin params
-// ginType: Engine, Context.
-// srv.ginHandel(c), srv is funcCall, ginHandel is funcName
-func searchGinFunc(asts *ast.Asts, ginType string, funcCall string, funcName string, params []string, recur recursive) {
-	for a, decl := range asts.Func(funcName) {
-		alias := a.DefaultImport(ginPkg, "gin")
-		ginCtx := fmt.Sprintf("*%s.%s", alias, ginType)
-		if len(ast.GetFuncParamByType(decl, ginCtx)) == 0 {
-			continue
-		}
-
-		vs := make(map[string]string)
-		if params != nil {
-			for i, s := range ast.GetFuncParamList(decl) {
-				vs[s] = params[i]
-			}
-		}
-
-		// function
-		if len(funcCall) == 0 {
-			recur(a, decl, vs)
-			continue
-		}
-
-		if decl.Recv == nil {
-			continue
-		}
-
-		// method
-		for _, field := range decl.Recv.List {
-			ident, ok := field.Type.(*dst.Ident)
-			if !ok || ident.Name != funcCall {
-				continue
-			}
-			recur(a, decl, vs)
-			return
-		}
-	}
 }

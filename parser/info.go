@@ -1,12 +1,5 @@
 package parser
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/hocv/gin-swagger-gen/ast"
-)
-
 var (
 	version      = "version"
 	title        = "title"
@@ -56,59 +49,3 @@ var (
 		basePath:     "/v2",
 	}
 )
-
-type InfoOption struct {
-	Base     bool
-	License  bool
-	Tag      bool
-	Security bool
-}
-
-type InfoParse struct {
-	infos []string
-}
-
-func NewInfoParse(opt InfoOption) *InfoParse {
-	infos := make([]string, 0, len(baseInfo))
-	if opt.Base {
-		infos = append(infos, baseInfo...)
-	}
-	if opt.License {
-		infos = append(infos, licenseInfo...)
-	}
-	if opt.Tag {
-		infos = append(infos, tagInfo...)
-	}
-	if opt.Security {
-		infos = append(infos, securityInfo...)
-	}
-	return &InfoParse{infos: infos}
-}
-
-func (p *InfoParse) Parse(asts ast.Asts) error {
-	mainAst, funDecl, err := asts.FuncInPkg("main", "main")
-	if err != nil {
-		return err
-	}
-	commons := funDecl.Decs.Start.All()
-	commonMap := make(map[string]string, len(commons))
-	for _, common := range commons {
-		trim := strings.TrimLeft(common, "// @")
-		split := strings.Split(trim, " ")
-		commonMap[split[0]] = common
-	}
-	funDecl.Decs.Start.Clear()
-	for _, info := range p.infos {
-		if common, ok := commonMap[info]; ok {
-			funDecl.Decs.Start.Append(common)
-			continue
-		}
-		desc := fmt.Sprintf("// @%s", info)
-		if v, ok := defaultValue[info]; ok {
-			desc = fmt.Sprintf("%s %s", desc, v)
-		}
-		funDecl.Decs.Start.Append(desc)
-	}
-	mainAst.Dirty()
-	return nil
-}

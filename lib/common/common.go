@@ -1,11 +1,14 @@
-package ast
+package common
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/dave/dst"
 )
+
+var ErrNotFind = errors.New("not found")
 
 // CheckSelectorExpr check stmt has SelectorExpr
 func CheckSelectorExpr(stmt interface{}, expr string) bool {
@@ -71,6 +74,9 @@ func GetFuncParamByType(decl *dst.FuncDecl, argType string) []string {
 // return map[name]type
 // func Test(a, b string) -> {"a":"string","b":"string")
 func GetFuncParams(decl *dst.FuncDecl) map[string]string {
+	if decl == nil {
+		return nil
+	}
 	vt := make(map[string]string)
 	for _, field := range decl.Type.Params.List {
 		t := filedType(field.Type)
@@ -188,7 +194,7 @@ func ToStr(stmt interface{}) string {
 		sel := stmt.(*dst.SelectorExpr)
 		return fmt.Sprintf("%s.%s", ToStr(sel.X), sel.Sel.Name)
 	case *dst.BasicLit:
-		return stmt.(*dst.BasicLit).Kind.String()
+		return strings.ToLower(stmt.(*dst.BasicLit).Kind.String())
 	case *dst.Ident:
 		return stmt.(*dst.Ident).Name
 	case *dst.StarExpr:
@@ -198,6 +204,8 @@ func ToStr(stmt interface{}) string {
 	case *dst.MapType:
 		mt := stmt.(*dst.MapType)
 		return fmt.Sprintf("map[%s]%s", mt.Key.(*dst.Ident).String(), mt.Value.(*dst.Ident).String())
+	case string:
+		return fmt.Sprintf("%v", stmt)
 	}
 	return ""
 }
@@ -247,6 +255,23 @@ func GetCallExprByVarName(stmt interface{}, varName string) (*dst.CallExpr, erro
 		}
 	}
 	return nil, ErrNotFind
+}
+
+func CheckCallExprParam(call *dst.CallExpr, p string) ([]string, bool) {
+	var (
+		ps []string
+		ok = false
+	)
+
+	for _, arg := range call.Args {
+		str := ToStr(arg)
+		if str == p {
+			ok = true
+		}
+		ps = append(ps, str)
+	}
+
+	return ps, ok
 }
 
 func BasicLitValue(basic interface{}) string {
