@@ -1,12 +1,11 @@
 package comment
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/dave/dst"
 )

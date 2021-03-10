@@ -114,6 +114,8 @@ func filedType(filed interface{}) string {
 		return fmt.Sprintf("*%s", filedType(filed.(*dst.StarExpr).X))
 	case *dst.Ident:
 		return filed.(*dst.Ident).Name
+	case *dst.InterfaceType:
+		return "interface{}"
 	default:
 		return ""
 	}
@@ -184,6 +186,8 @@ func GetVars(stmt interface{}) map[string]string {
 // ToStr convert to string
 func ToStr(stmt interface{}) string {
 	switch stmt.(type) {
+	case *dst.TypeAssertExpr:
+		return ToStr(stmt.(*dst.TypeAssertExpr).Type)
 	case *dst.UnaryExpr:
 		return ToStr(stmt.(*dst.UnaryExpr).X)
 	case *dst.CompositeLit:
@@ -203,7 +207,7 @@ func ToStr(stmt interface{}) string {
 		return fmt.Sprintf("[]%s", ToStr(stmt.(*dst.ArrayType).Elt))
 	case *dst.MapType:
 		mt := stmt.(*dst.MapType)
-		return fmt.Sprintf("map[%s]%s", mt.Key.(*dst.Ident).String(), mt.Value.(*dst.Ident).String())
+		return fmt.Sprintf("map[%s]%s", ToStr(mt.Key), ToStr(mt.Value))
 	case string:
 		return fmt.Sprintf("%v", stmt)
 	}

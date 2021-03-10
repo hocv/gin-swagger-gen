@@ -3,6 +3,8 @@ package test
 import (
 	"net/http"
 
+	"github.com/hocv/gin-swagger-gen/parser/test/model"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,10 +17,21 @@ func recursiveTest() {
 }
 
 func handleRecursive(c *gin.Context) {
-	recursive(c)
+	b := model.Book{}
+	recursive(c, b)
 }
 
-func recursive(c *gin.Context) {
-	r := Resp{}
-	c.JSON(http.StatusOK, r)
+func recursive(c *gin.Context, data interface{}) {
+	res := Resp{
+		Code: http.StatusOK,
+		Msg:  "ok",
+		Data: data,
+	}
+
+	if err, ok := data.(error); ok {
+		res.Code = http.StatusBadRequest
+		res.Msg = err.Error()
+		res.Data = err
+	}
+	c.JSON(http.StatusOK, res)
 }

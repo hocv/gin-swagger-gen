@@ -151,7 +151,22 @@ func (proj *Proj) GetVarsFromStmt(stmt interface{}, curPkg string, outVars map[s
 		total := 0
 		for _, rh := range assign.Rhs {
 			switch rh.(type) {
-			case *dst.CompositeLit:
+			case *dst.TypeAssertExpr:
+				switch assign.Lhs[total].(type) {
+				case *dst.Ident:
+					lhName := assign.Lhs[total].(*dst.Ident).Name
+					vars[lhName] = proj.interfaceOfCompositeLit(curPkg, rh, outVars)
+				case *dst.SelectorExpr:
+					v := proj.interfaceOfCompositeLit(curPkg, rh, outVars)
+					selFn(assign.Lhs[total].(*dst.SelectorExpr), v)
+				}
+				total++
+				if len(assign.Lhs) > total {
+					lhName := assign.Lhs[total].(*dst.Ident).Name
+					vars[lhName] = "bool"
+					total++
+				}
+			case *dst.Ident, *dst.BasicLit, *dst.CompositeLit:
 				switch assign.Lhs[total].(type) {
 				case *dst.Ident:
 					lhName := assign.Lhs[total].(*dst.Ident).Name

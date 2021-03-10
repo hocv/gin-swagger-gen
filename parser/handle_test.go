@@ -74,12 +74,20 @@ func TestHandleProduct(t *testing.T) {
 func TestHandleRecursive(t *testing.T) {
 	p := proj.New()
 
-	f, err := file.New("./test/recursive.go")
-	if err != nil {
-		t.Fatal(f)
-		return
+	files := []string{
+		"./test/recursive.go",
+		"./test/handle.go",
+		"./test/model/model.go",
 	}
-	p.AddFile(f)
+
+	for _, s := range files {
+		f, err := file.New(s)
+		if err != nil {
+			t.Fatal(f)
+			return
+		}
+		p.AddFile(f)
+	}
 
 	ffnd := p.GetFunc("test", "recursiveTest")
 	if len(ffnd) != 1 {

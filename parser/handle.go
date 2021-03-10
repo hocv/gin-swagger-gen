@@ -138,6 +138,11 @@ func (hdl *handle) parseIterm(stmt interface{}, vars map[string]string) {
 					nvs[s] = ps[i]
 				}
 				fh := newHandle(hdl.proj, f, fnd, hdl.DstDecl, hdl.Cmt)
+				for nk, nv := range nvs {
+					if ov, ok := vars[nv]; ok {
+						fh.Vars[nk] = ov
+					}
+				}
 				fh.Parse()
 			}
 		}

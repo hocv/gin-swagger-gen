@@ -58,6 +58,15 @@ func (r recv) book2() ([]model.Book, Resp) {
 
 func handleProduct(c *gin.Context) {
 	{
+		r := Resp{
+			Code: 0,
+			Msg:  "",
+			Data: model.Book{},
+		}
+		r.Data = 1
+		c.JSON(0, r)
+	}
+	{
 		r := recv{}
 		price := r.book().Price()
 		resp := Resp{
