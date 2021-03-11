@@ -12,40 +12,52 @@ import (
 
 // Comment
 type Comment struct {
-	Summary     string
-	Tags        string
-	ID          string
-	Description []string
-	Accept      []string
-	Produce     []string
-	Route       Route
+	summary     string
+	tags        string
+	id          string
+	description []string
+	accept      []string
+	produce     []string
+	route       Route
 	params      Params
-	Resp        []Resp
+	resp        map[int]Resp
+}
+
+func New(summary, routeBase, routePath, method string) *Comment {
+	return &Comment{
+		summary: summary,
+		tags:    strings.TrimPrefix(routeBase, "/"),
+		route: Route{
+			RoutePath:   routePath,
+			RouteMethod: method,
+		},
+		resp: map[int]Resp{},
+	}
 }
 
 // Decs common
 func (c *Comment) Decs() []string {
 	desc := []string{
-		fmt.Sprintf("// @Summary %s", c.Summary),
+		fmt.Sprintf("// @Summary %s", c.summary),
 	}
 
-	if len(c.ID) > 0 {
-		desc = append(desc, fmt.Sprintf("// @ID %s", c.ID))
+	if len(c.id) > 0 {
+		desc = append(desc, fmt.Sprintf("// @ID %s", c.id))
 	}
 
-	if len(c.Tags) > 0 {
-		desc = append(desc, fmt.Sprintf("// @Tags %s", c.Tags))
+	if len(c.tags) > 0 {
+		desc = append(desc, fmt.Sprintf("// @Tags %s", c.tags))
 	}
 
-	for _, d := range c.Description {
+	for _, d := range c.description {
 		desc = append(desc, fmt.Sprintf("// @Description %s", d))
 	}
 
-	if len(c.Accept) > 0 {
-		desc = append(desc, trimAndJoin("Accept", c.Accept))
+	if len(c.accept) > 0 {
+		desc = append(desc, trimAndJoin("Accept", c.accept))
 	}
-	if len(c.Produce) > 0 {
-		desc = append(desc, trimAndJoin("Produce", c.Produce))
+	if len(c.produce) > 0 {
+		desc = append(desc, trimAndJoin("Produce", c.produce))
 	}
 
 	sort.Sort(c.params)
@@ -53,17 +65,11 @@ func (c *Comment) Decs() []string {
 		desc = append(desc, p.Decs())
 	}
 
-	codeMap := make(map[int]string)
-	for _, r := range c.Resp {
-		_, ok := codeMap[r.Code]
-		if ok {
-			continue
-		}
-		codeMap[r.Code] = r.Type
+	for _, r := range c.resp {
 		desc = append(desc, r.Decs())
 	}
 
-	desc = append(desc, c.Route.Decs())
+	desc = append(desc, c.route.Decs())
 	return desc
 }
 
@@ -119,6 +125,18 @@ func (c *Comment) AddParam(param Param) {
 	c.params = append(c.params, param)
 }
 
+func (c *Comment) AddResp(resp Resp) {
+	c.resp[resp.Code] = resp
+}
+
+func (c *Comment) AddProduce(prod string) {
+	c.produce = append(c.produce, prod)
+}
+
+func (c *Comment) AddAccept(accept string) {
+	c.accept = append(c.accept, accept)
+}
+
 func (c *Comment) parseComment(cmt string) {
 	commentLine := strings.TrimSpace(strings.TrimLeft(cmt, "//"))
 	if len(commentLine) == 0 {
@@ -130,28 +148,28 @@ func (c *Comment) parseComment(cmt string) {
 
 	switch attribute {
 	case "@summary":
-		c.Summary = remainder
+		c.summary = remainder
 	case "@description":
-		c.Description = append(c.Description, remainder)
+		c.description = append(c.description, remainder)
 	case "@accept":
 		if len(remainder) > 0 {
-			c.Accept = append(c.Accept, strings.Split(remainder, ",")...)
+			c.accept = append(c.accept, strings.Split(remainder, ",")...)
 		}
 	case "@produce":
 		if len(remainder) > 0 {
-			c.Produce = append(c.Produce, strings.Split(remainder, ",")...)
+			c.produce = append(c.produce, strings.Split(remainder, ",")...)
 		}
 	case "@param":
 		if p, err := parseParam(commentLine); err == nil {
 			c.AddParam(p)
 		}
 	case "@tags":
-		c.Tags = remainder
+		c.tags = remainder
 	case "@id":
-		c.ID = remainder
+		c.id = remainder
 	default:
 		if !strings.HasPrefix(commentLine, "@") {
-			c.Description = append(c.Description, commentLine)
+			c.description = append(c.description, commentLine)
 		}
 	}
 }

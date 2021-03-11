@@ -18,10 +18,18 @@ func recursiveTest() {
 
 func handleRecursive(c *gin.Context) {
 	b := model.Book{}
-	recursive(c, b)
+	recursive1(c, b, nil)
 }
 
-func recursive(c *gin.Context, data interface{}) {
+func recursive1(c *gin.Context, data interface{}, err error) {
+	if err != nil {
+		recursive2(c, err)
+		return
+	}
+	recursive2(c, data)
+}
+
+func recursive2(c *gin.Context, data interface{}) {
 	res := Resp{
 		Code: http.StatusOK,
 		Msg:  "ok",

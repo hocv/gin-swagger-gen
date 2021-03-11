@@ -330,6 +330,9 @@ func (proj *Proj) getInterfaceOfStruct(curPkg string, stru *dst.StructType) map[
 		if field.Tag != nil {
 			tag = getJsonTag(field.Tag.Value)
 		} else {
+			if len(field.Names) == 0 {
+				continue
+			}
 			tag = snakeCase(field.Names[0].Name)
 		}
 

@@ -52,7 +52,7 @@ func newHandle(proj *proj.Proj, f *file.File, dstDecl *dst.FuncDecl, decl *dst.F
 }
 
 func (hdl *handle) Parse() {
-	parseStmtList(hdl.DstDecl.Body.List, hdl.Vars, hdl.parseIterm)
+	parseStmtList(hdl.SrcDecl.Body.List, hdl.Vars, hdl.parseIterm)
 }
 
 func (hdl *handle) Merge() {
@@ -137,7 +137,7 @@ func (hdl *handle) parseIterm(stmt interface{}, vars map[string]string) {
 				for i, s := range fps {
 					nvs[s] = ps[i]
 				}
-				fh := newHandle(hdl.proj, f, fnd, hdl.DstDecl, hdl.Cmt)
+				fh := newHandle(hdl.proj, f, hdl.DstDecl, fnd, hdl.Cmt)
 				for nk, nv := range nvs {
 					if ov, ok := vars[nv]; ok {
 						fh.Vars[nk] = ov
@@ -272,7 +272,6 @@ func parseBind(bindType string) handleParser {
 		if len(call.Args) == 0 {
 			return
 		}
-		hdl.Cmt.Accept = append(hdl.Cmt.Accept, bindType)
 
 		name := common.ToStr(call.Args[0])
 		refType, ok := vars[name]
@@ -282,6 +281,7 @@ func parseBind(bindType string) handleParser {
 
 		param := comment.NewBodyParam(name, refType, "")
 		hdl.Cmt.AddParam(param)
+		hdl.Cmt.AddAccept(bindType)
 	}
 }
 
@@ -314,7 +314,6 @@ func parseQuery(queryType string) handleParser {
 
 func parseForm(formType string) handleParser {
 	return func(hdl *handle, vars map[string]string, val string, call *dst.CallExpr) {
-		hdl.Cmt.Accept = append(hdl.Cmt.Accept, "multipart/form-data")
 		name, ref, desc := common.BasicLitValue(call.Args[0]), "string", ""
 		if formType == "FormFile" {
 			ref = "file"
@@ -325,6 +324,7 @@ func parseForm(formType string) handleParser {
 		}
 		param := comment.NewFormDataParam(name, ref, desc)
 		hdl.Cmt.AddParam(param)
+		hdl.Cmt.AddAccept("multipart/form-data")
 	}
 }
 
@@ -333,7 +333,7 @@ func parseProduce(produceType string) handleParser {
 		if len(call.Args) < 2 {
 			return
 		}
-		hdl.Cmt.Produce = append(hdl.Cmt.Produce, produceType)
+		hdl.Cmt.AddProduce(produceType)
 
 		state := common.ToStr(call.Args[0])
 		code, ok := stateCode[state]
@@ -365,6 +365,6 @@ func parseProduce(produceType string) handleParser {
 			}
 		}
 
-		hdl.Cmt.Resp = append(hdl.Cmt.Resp, r)
+		hdl.Cmt.AddResp(r)
 	}
 }

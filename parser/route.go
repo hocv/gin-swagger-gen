@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"strings"
-
 	"github.com/hocv/gin-swagger-gen/parser/comment"
 
 	"github.com/dave/dst"
@@ -73,17 +71,12 @@ func parseRouteMethod(rh *route, val string, cal string, call *dst.CallExpr) {
 
 	routePath := routeBase + fmtRoutePath(firstArg)
 
-	cmt := &comment.Comment{
-		Summary: handleFn,
-		Tags:    strings.TrimPrefix(routeBase, "/"),
-		Route: comment.Route{
-			RoutePath:   routePath,
-			RouteMethod: strings.ToLower(sel.Sel.Name),
-		},
-	}
+	cmt := comment.New(handleFn, routeBase, routePath, sel.Sel.Name)
 	pps := routePathParams(routePath)
 	for _, p := range pps {
-		cmt.AddParam(comment.NewPathParam(p, "string", ""))
+		if len(p) > 0 {
+			cmt.AddParam(comment.NewPathParam(p, "string", p))
+		}
 	}
 
 	ffs := rh.proj.GetFunc(rh.curPkg, handleFn)

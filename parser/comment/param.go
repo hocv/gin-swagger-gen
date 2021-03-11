@@ -10,6 +10,12 @@ type Param struct {
 }
 
 func (p Param) Decs() string {
+	if len(p.Description) == 0 {
+		p.Description = p.Name
+	}
+	if p.paramType == "error" {
+		p.paramType = "string"
+	}
 	return fmt.Sprintf("// @Param %s %s %s true \"%s\"", p.Name, p.paramType, p.RefType, p.Description)
 }
 
