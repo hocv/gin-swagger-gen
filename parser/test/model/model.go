@@ -5,8 +5,8 @@ type Book struct {
 	Auth interface{} `json:"auth"`
 }
 
-func (b Book) Price() Price {
-	return Price{}
+func (b Book) GetPrice() []Price {
+	return []Price{}
 }
 
 type Price struct {

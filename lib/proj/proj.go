@@ -198,66 +198,103 @@ func (proj *Proj) GetVarsFromStmt(stmt interface{}, curPkg string, outVars map[s
 	return vars
 }
 
-func (proj *Proj) getVarFromCallExprResult(curPkg string, ce *dst.CallExpr, outVars map[string]string) (result []string) {
-	fun := func(cp, pn, fn string) []string {
-		var rs []string
-		p, ok := proj.pkgs[pn]
-		if !ok {
-			ovt, ok := outVars[pn]
-			if ok {
-				oPkg, oRecv := slitDot(cp, ovt)
-				op, ok := proj.pkgs[oPkg]
-				if !ok {
-					return rs
-				}
-				for _, decl := range op.GetFunc(fn) {
-					if common.ToStr(decl.Name) != fn {
-						continue
-					}
-					is := false
-					for _, field := range decl.Recv.List {
-						if common.ToStr(field.Type) == oRecv {
-							is = true
-						}
-					}
-					if !is {
-						continue
-					}
-					for _, field := range decl.Type.Results.List {
-						rs = append(rs, common.ToStr(field.Type))
-					}
-				}
-				return rs
-			}
-			result = append(rs, fmt.Sprintf("%s.%s", pn, fn))
-			return rs
+func (proj *Proj) isPkg(name string) bool {
+	_, ok := proj.pkgs[name]
+	return ok
+}
+
+func (proj *Proj) isFunc(name string) bool {
+	for _, p := range proj.pkgs {
+		if len(p.GetFunc(name)) > 0 {
+			return true
 		}
-		for _, decl := range p.GetFunc(fn) {
-			if common.ToStr(decl.Name) != fn {
+	}
+	return false
+}
+
+func (proj *Proj) isStruct(name string) bool {
+	for _, p := range proj.pkgs {
+		_, err := p.GetStruct(name)
+		if err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (proj *Proj) getFuncResult(pkgName, FnName, recvName string) []string {
+	p, ok := proj.pkgs[pkgName]
+	if !ok {
+		return nil
+	}
+	return p.GetFuncResultByName(FnName, recvName)
+}
+
+func (proj *Proj) getStructFieldType(pkgName, structName, fieldName string) (string, bool) {
+	p, ok := proj.pkgs[pkgName]
+	if !ok {
+		return "", false
+	}
+	return p.GetStructFieldType(structName, fieldName)
+}
+
+func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outVars map[string]string) []string {
+	fff := func(args ...string) []string {
+		var pkgName, struName, funcName, fieldName string
+		for _, arg := range args {
+			if proj.isPkg(arg) {
+				pkgName = arg
 				continue
 			}
-			for _, field := range decl.Type.Results.List {
-				rs = append(result, common.ToStr(field.Type))
+			if proj.isStruct(arg) {
+				struName = arg
+				continue
+			}
+			if proj.isFunc(arg) {
+				funcName = arg
+				continue
+			}
+			fieldName = arg
+		}
+		if len(struName) > 0 {
+			ft, ok := proj.getStructFieldType(pkgName, struName, fieldName)
+			if ok {
+				return []string{ft}
 			}
 		}
-		return rs
-	}
-
-	if sel, ok := ce.Fun.(*dst.SelectorExpr); ok {
-		if c, cok := sel.X.(*dst.CallExpr); cok {
-			rs := proj.getVarFromCallExprResult(curPkg, c, outVars)
-			if len(rs) != 1 {
-				return nil
-			}
-			pn, _ := slitDot(curPkg, rs[0])
-			result = fun(pn, pn, common.ToStr(sel.Sel))
-			return
+		if len(funcName) > 0 {
+			return proj.getFuncResult(pkgName, funcName, struName)
 		}
+		return nil
 	}
 
-	pn, fn := slitDot(curPkg, common.ToStr(ce))
-	result = fun(curPkg, pn, fn)
-	return
+	switch stmt.(type) {
+	case *dst.SelectorExpr:
+		sel := stmt.(*dst.SelectorExpr)
+		rs := proj.getVarFromCallExprResult(curPkg, sel.X, outVars)
+		if len(rs) != 1 {
+			return nil
+		}
+		var v1, v2 string
+		if ovt, ok := outVars[rs[0]]; ok {
+			v1, v2 = slitDot(curPkg, ovt)
+		} else {
+			v1, v2 = slitDot(curPkg, rs[0])
+		}
+		selStr := common.ToStr(sel.Sel)
+		return fff(v1, v2, selStr)
+	case *dst.CallExpr:
+		call := stmt.(*dst.CallExpr)
+		return proj.getVarFromCallExprResult(curPkg, call.Fun, outVars)
+	case *dst.Ident:
+		str := common.ToStr(stmt)
+		if _, ok := outVars[str]; ok {
+			return []string{str}
+		}
+		v1, v2 := slitDot(curPkg, str)
+		return fff(v1, v2)
+	}
+	return nil
 }
 
 func (proj *Proj) interfaceOfCompositeLit(curPkg string, stmt interface{}, outVars map[string]string) string {

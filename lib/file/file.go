@@ -154,6 +154,25 @@ func (f *File) FuncWithSelector(expr string) (fds []*dst.FuncDecl) {
 	return
 }
 
+func (f *File) FuncWithRecv(fnName, recvName string) (*dst.FuncDecl, error) {
+	fd, ok := f.funcs[fnName]
+	if !ok {
+		return nil, common.ErrNotFind
+	}
+
+	if fd.Recv == nil && len(recvName) > 0 {
+		return nil, common.ErrNotFind
+	}
+
+	for _, field := range fd.Recv.List {
+		if common.ToStr(field.Type) == recvName {
+			return fd, nil
+		}
+	}
+
+	return nil, common.ErrNotFind
+}
+
 func (f *File) Imported(path string) (string, bool) {
 	path = fmt.Sprintf("\"%s\"", path)
 	alias, ok := f.imports[path]
@@ -175,7 +194,7 @@ func (f *File) DefaultImport(path string, value string) (string, bool) {
 
 // GlobalVars global vars in file
 func (f *File) GlobalVars() map[string]string {
-	return f.imports
+	return f.globalVars
 }
 
 func (f *File) Struct(name string) (*dst.StructType, error) {

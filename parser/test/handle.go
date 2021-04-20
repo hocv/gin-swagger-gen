@@ -64,33 +64,33 @@ func handleProduct(c *gin.Context) {
 			Data: model.Book{},
 		}
 		r.Data = 1
-		c.JSON(0, r)
+		c.JSON(0, r) // Resp{data=int}
 	}
 	{
 		r := recv{}
-		price := r.book().Price()
+		price := r.book().GetPrice()
 		resp := Resp{
 			Code:  0,
 			Msg:   "ok",
 			Data:  price,
 			Data2: nil,
 		}
-		c.JSON(1, resp)
+		c.JSON(1, resp) // Resp{data=[]Price} todo: add pkg
 	}
 
-	c.String(2, "f")
+	c.String(2, "f") // string
 	{
 		c.XML(3, Resp{
 			Code:  0,
 			Msg:   "",
 			Data:  model.Book{},
 			Data2: nil,
-		})
+		}) //  Resp{data=model.Book}
 	}
 	{
 		r := recv{}
 		bs := r.books()
-		c.JSON(4, bs)
+		c.JSON(4, bs) // []model.Book
 	}
 	{
 		r := recv{}
@@ -100,8 +100,8 @@ func handleProduct(c *gin.Context) {
 			Data:  nil,
 			Data2: Resp{},
 		}, r.books()
-		c.JSON(5, r1)
-		c.JSON(6, r2)
+		c.JSON(5, r1) // Resp{data2=Resp}
+		c.JSON(6, r2) // []model.Book
 	}
 	{
 		resp := Resp{
@@ -112,7 +112,7 @@ func handleProduct(c *gin.Context) {
 		}
 		r := recv{}
 		resp.Data = r.books()
-		c.JSON(7, resp)
+		c.JSON(7, resp) // Resp{data=[]model.Book}
 	}
 
 	{
@@ -124,7 +124,7 @@ func handleProduct(c *gin.Context) {
 		}
 		r := recv{}
 		resp.Data, resp.Data2 = r.book2()
-		c.JSON(8, resp)
+		c.JSON(8, resp) // Resp{data2=Resp,data=[]model.Book}
 	}
 
 	{
@@ -138,7 +138,7 @@ func handleProduct(c *gin.Context) {
 		rr := Resp{}
 		resp.Data, rr = r.book2()
 		fmt.Println(rr)
-		c.JSON(9, resp)
+		c.JSON(9, resp) // Resp{data=[]model.Book}
 	}
 
 	{
@@ -151,14 +151,14 @@ func handleProduct(c *gin.Context) {
 		r := recv{}
 		var res []model.Book
 		res, resp.Data = r.book2()
-		c.JSON(10, resp)
-		c.JSON(11, res)
+		c.JSON(10, resp) // Resp{data=Resp}
+		c.JSON(11, res)  // []model.Book
 	}
 
 	{
 		b, err := getBook()
-		c.JSON(12, b)
-		c.JSON(13, err)
+		c.JSON(12, b)   // model.Book
+		c.JSON(13, err) // {object} error todo: to string
 	}
 
 	{
@@ -168,7 +168,7 @@ func handleProduct(c *gin.Context) {
 			Msg:  "msg",
 			Data: bo,
 		}
-		c.JSON(14, resp)
+		c.JSON(14, resp) // Resp{data=model.Book}
 	}
 	{
 		resp := Resp{
@@ -191,7 +191,7 @@ func handleProduct(c *gin.Context) {
 				Auth: "",
 			},
 		}
-		c.JSON(15, resp)
+		c.JSON(15, resp) // Resp{data=Resp{data2=model.Book{auth=model.Book}},data2=model.Book}
 	}
 	{
 		b := model.Book{
@@ -217,8 +217,23 @@ func handleProduct(c *gin.Context) {
 		}
 
 		resp.Data2 = Resp{}
-		c.JSON(16, resp)
+		c.JSON(16, resp) // Resp{data2=Resp,data=model.Book{auth=Resp}}
 	}
+	{
+		p := lib.Bk.GetPrice()
+		resp := Resp{
+			Code: 0,
+			Msg:  "",
+			Data: p,
+		}
+		c.JSON(17, resp) // Resp{data=[]Price} todo: add pkg
+	}
+}
+
+var lib = Lib{}
+
+type Lib struct {
+	Bk model.Book
 }
 
 type login struct {

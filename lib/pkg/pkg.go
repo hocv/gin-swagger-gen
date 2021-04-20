@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"fmt"
+
 	"github.com/dave/dst"
 	"github.com/hocv/gin-swagger-gen/lib/common"
 	"github.com/hocv/gin-swagger-gen/lib/file"
@@ -54,16 +56,28 @@ func (p *Pkg) GetFuncWithParam(param string) map[*file.File][]*dst.FuncDecl {
 	}
 	return af
 }
+func (p *Pkg) GetFuncResultByName(FnName, recvName string) []string {
+	var result []string
+	for _, f := range p.files {
+		var fd *dst.FuncDecl
+		var err error
+		if len(recvName) > 0 {
+			fd, err = f.FuncWithRecv(FnName, recvName)
 
-func (p *Pkg) GetAstWithImported(pkg string) []*file.File {
-	as := make([]*file.File, 0)
-	for _, a := range p.files {
-		_, b := a.Imported(pkg)
-		if b {
-			as = append(as, a)
+		} else {
+			fd, err = f.Func(FnName)
+			if err == nil && fd.Recv != nil {
+				continue
+			}
+		}
+		if err != nil {
+			continue
+		}
+		for _, field := range fd.Type.Results.List {
+			result = append(result, common.ToStr(field.Type))
 		}
 	}
-	return as
+	return result
 }
 
 func (p *Pkg) GetGlobalVar() map[string]string {
@@ -84,6 +98,24 @@ func (p *Pkg) GetStruct(name string) (*dst.StructType, error) {
 		}
 	}
 	return nil, common.ErrNotFind
+}
+
+func (p *Pkg) GetStructFieldType(structName, fieldName string) (string, bool) {
+	stru, err := p.GetStruct(structName)
+	if err != nil {
+		return "", false
+	}
+
+	for _, field := range stru.Fields.List {
+		fieldType := common.ToStr(field.Type)
+		for _, name := range field.Names {
+			fn := common.ToStr(name)
+			if fn == fieldName || fn == fmt.Sprintf("*%s", fieldName) {
+				return fieldType, true
+			}
+		}
+	}
+	return "", false
 }
 
 func (p *Pkg) GetImported(path string) (string, error) {
