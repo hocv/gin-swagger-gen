@@ -239,7 +239,7 @@ func (proj *Proj) getStructFieldType(pkgName, structName, fieldName string) (str
 }
 
 func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outVars map[string]string) []string {
-	fff := func(args ...string) []string {
+	fn := func(args ...string) []string {
 		var pkgName, struName, funcName, fieldName string
 		for _, arg := range args {
 			if proj.isPkg(arg) {
@@ -282,7 +282,7 @@ func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outV
 			v1, v2 = slitDot(curPkg, rs[0])
 		}
 		selStr := common.ToStr(sel.Sel)
-		return fff(v1, v2, selStr)
+		return fn(v1, v2, selStr)
 	case *dst.CallExpr:
 		call := stmt.(*dst.CallExpr)
 		return proj.getVarFromCallExprResult(curPkg, call.Fun, outVars)
@@ -292,7 +292,7 @@ func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outV
 			return []string{str}
 		}
 		v1, v2 := slitDot(curPkg, str)
-		return fff(v1, v2)
+		return fn(v1, v2)
 	}
 	return nil
 }
