@@ -28,3 +28,24 @@ func TestParseRoute(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func TestGroup(t *testing.T) {
+	p := proj.New()
+	f, err := file.New("./test/route.go")
+	if err != nil {
+		t.Fatal(f)
+		return
+	}
+	p.AddFile(f)
+	dstFn, err := f.Func("groupTest")
+	if err != nil {
+		t.Fatal(f)
+		return
+	}
+
+	rh := newRoute(p, "Default", "")
+	rh.Parse(f, dstFn)
+	if len(rh.Handles) != 1 {
+		t.Fatal()
+	}
+}

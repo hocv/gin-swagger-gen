@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/hocv/gin-swagger-gen/parser/comment"
 
 	"github.com/dave/dst"
@@ -176,9 +178,36 @@ func (rh *route) parseItem(stmt interface{}, vars map[string]string) {
 			continue
 		}
 
+		var innerRoutePath string
+		var innerRouteIdx int
 		ps, ok := common.CheckCallExprParam(call, rh.engineVar)
 		if !ok {
-			continue
+			if len(ps) == 0 || ps[0] == rh.engineVar {
+				continue
+			}
+			groupStr := fmt.Sprintf("%s.Group", rh.engineVar)
+			if groupStr != ps[0] {
+				continue
+			}
+			for idx, arg := range call.Args {
+				switch arg.(type) {
+				case *dst.CallExpr:
+					pc := arg.(*dst.CallExpr)
+					argStr := common.ToStr(arg)
+					if argStr != groupStr {
+						continue
+					}
+					cal, _ := splitDot(argStr)
+					routeBase, ok := rh.RouteMap[cal]
+					if !ok {
+						continue
+					}
+					path := pc.Args[0].(*dst.BasicLit).Value
+					innerRoutePath = routeBase + fmtRoutePath(path)
+					innerRouteIdx = idx
+					break
+				}
+			}
 		}
 
 		ffs := rh.proj.GetFunc(rh.curPkg, t)
@@ -188,17 +217,25 @@ func (rh *route) parseItem(stmt interface{}, vars map[string]string) {
 
 		for f, fnd := range ffs {
 			nvs := make(map[string]string)
+			innerRouteVal := ""
 			if len(ps) > 0 {
 				fps := common.GetFuncParamList(fnd)
 				if len(fps) != len(ps) {
 					continue
 				}
 				for i, s := range fps {
+					if len(innerRoutePath) > 0 && i == innerRouteIdx {
+						innerRouteVal = s
+						continue
+					}
 					nvs[s] = ps[i]
 				}
 			}
 
 			nrh := rh.Copy(nvs)
+			if len(innerRouteVal) > 0 {
+				nrh.RouteMap[innerRouteVal] = innerRoutePath
+			}
 			nrh.Parse(f, fnd)
 			rh.Handles = append(rh.Handles, nrh.Handles...)
 		}

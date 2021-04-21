@@ -40,3 +40,15 @@ func groupHandler1(c *gin.Context) {}
 func groupHandler2(c *gin.Context) {}
 func groupHandler3(c *gin.Context) {}
 func groupHandler4(c *gin.Context) {}
+
+func groupTest() {
+	g := gin.Default()
+	groupFunc(g.Group("/groupParam"))
+	_ = g.Run(":9090")
+}
+
+func groupFunc(g *gin.RouterGroup) {
+	g.GET("/api", groupFuncHandel)
+}
+
+func groupFuncHandel(c *gin.Context) {}
