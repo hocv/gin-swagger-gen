@@ -10,6 +10,6 @@ func (b Book) GetPrice() []Price {
 }
 
 type Price struct {
-	Value int
-	Type  string
+	Value int    `form:"p_value" binding:"required"`
+	Type  string `form:"p_type"`
 }

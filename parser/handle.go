@@ -164,6 +164,8 @@ var handleParsers = map[string]handleParser{
 	"BindYAML":           parseBind("yaml"),
 	"ShouldBindYAML":     parseBind("yaml"),
 	"Query":              parseQuery(""),
+	"BindQuery":          parseQuery("BindQuery"),
+	"ShouldBindQuery":    parseQuery("ShouldBindQuery"),
 	"DefaultQuery":       parseQuery("DefaultQuery"),
 	"GetQuery":           parseQuery(""),
 	"QueryArray":         parseQuery(""),
@@ -298,6 +300,36 @@ func parseQuery(queryType string) handleParser {
 			if !ok {
 				return
 			}
+			pkg, struName := splitDot(refType)
+			if len(pkg) == 0 {
+				pkg = hdl.curPkg
+			}
+			stru, err := hdl.proj.GetStruct(pkg, struName)
+			if err != nil {
+				return
+			}
+			for _, field := range stru.Fields.List {
+				if len(field.Names) == 0 {
+					continue
+				}
+				ft := common.ToStr(field.Type)
+				tag := ""
+				required := false
+				if field.Tag != nil {
+					tag = common.GetFormTag(field.Tag.Value)
+					required = common.GetTagBindingRequired(field.Tag.Value)
+				}
+				for _, ident := range field.Names {
+					fieldName := tag
+					if len(name) == 0 {
+						fieldName = common.SnakeCase(ident.Name)
+					}
+					param := comment.NewQueryParam(fieldName, ft, "")
+					param.Required = required
+					hdl.Cmt.AddParam(param)
+				}
+			}
+			return
 		} else {
 			name = common.BasicLitValue(call.Args[0])
 			if strings.Contains(queryType, "Default") && len(call.Args) > 1 {

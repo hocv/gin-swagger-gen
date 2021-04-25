@@ -4,6 +4,7 @@ import "fmt"
 
 type Param struct {
 	Name        string
+	Required    bool
 	paramType   string
 	RefType     string
 	Description string
@@ -16,7 +17,7 @@ func (p Param) Decs() string {
 	if p.paramType == "error" {
 		p.paramType = "string"
 	}
-	return fmt.Sprintf("// @Param %s %s %s true \"%s\"", p.Name, p.paramType, p.RefType, p.Description)
+	return fmt.Sprintf("// @Param %s %s %s %t \"%s\"", p.Name, p.paramType, p.RefType, p.Required, p.Description)
 }
 
 type Params []Param
@@ -36,6 +37,7 @@ func (ps Params) Swap(i, j int) {
 func NewBodyParam(name, refType, desc string) Param {
 	return Param{
 		Name:        name,
+		Required:    true,
 		paramType:   "body",
 		RefType:     refType,
 		Description: desc,
@@ -45,6 +47,7 @@ func NewBodyParam(name, refType, desc string) Param {
 func NewPathParam(name, refType, desc string) Param {
 	return Param{
 		Name:        name,
+		Required:    true,
 		paramType:   "path",
 		RefType:     refType,
 		Description: desc,
@@ -63,6 +66,7 @@ func NewQueryParam(name, refType, desc string) Param {
 func NewFormDataParam(name, refType, desc string) Param {
 	return Param{
 		Name:        name,
+		Required:    true,
 		paramType:   "formData",
 		RefType:     refType,
 		Description: desc,

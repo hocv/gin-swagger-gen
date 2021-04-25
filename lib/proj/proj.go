@@ -365,12 +365,12 @@ func (proj *Proj) getInterfaceOfStruct(curPkg string, stru *dst.StructType) map[
 	for _, field := range stru.Fields.List {
 		var tag string
 		if field.Tag != nil {
-			tag = getJsonTag(field.Tag.Value)
+			tag = common.GetJsonTag(field.Tag.Value)
 		} else {
 			if len(field.Names) == 0 {
 				continue
 			}
-			tag = snakeCase(field.Names[0].Name)
+			tag = common.SnakeCase(field.Names[0].Name)
 		}
 
 		switch field.Type.(type) {
@@ -469,70 +469,4 @@ func replaceValue(str, k, v string) string {
 	tv := str[startIdx-1 : endIdx]
 	v = fmt.Sprintf("=%s", v)
 	return strings.Replace(str, tv, v, 1)
-}
-
-func getJsonTag(str string) string {
-	idx := strings.Index(str, "json:\"")
-	if idx < 0 {
-		return ""
-	}
-	str = str[idx+6:]
-	idx = strings.Index(str, "\"")
-	str = str[:idx]
-	idx = strings.Index(str, ",")
-	if idx < 0 {
-		return str
-	}
-	return str[:idx]
-}
-
-func snakeCase(s string) string {
-	s = strings.TrimSpace(s)
-	buffer := make([]rune, 0, len(s)+3)
-
-	delimiter := '_'
-
-	isLower := func(ch rune) bool {
-		return ch >= 'a' && ch <= 'z'
-	}
-	toLower := func(ch rune) rune {
-		if ch >= 'A' && ch <= 'Z' {
-			return ch + 32
-		}
-		return ch
-	}
-	isUpper := func(ch rune) bool {
-		return ch >= 'A' && ch <= 'Z'
-	}
-	isDelimiter := func(ch rune) bool {
-		return ch == '-' || ch == '_' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
-	}
-
-	var prev rune
-	var curr rune
-	for _, next := range s {
-		if isDelimiter(curr) {
-			if !isDelimiter(prev) {
-				buffer = append(buffer, delimiter)
-			}
-		} else if isUpper(curr) {
-			if isLower(prev) || (isUpper(prev) && isLower(next)) {
-				buffer = append(buffer, delimiter)
-			}
-			buffer = append(buffer, toLower(curr))
-		} else if curr != 0 {
-			buffer = append(buffer, toLower(curr))
-		}
-		prev = curr
-		curr = next
-	}
-
-	if len(s) > 0 {
-		if isUpper(curr) && isLower(prev) && prev != 0 {
-			buffer = append(buffer, delimiter)
-		}
-		buffer = append(buffer, toLower(curr))
-	}
-
-	return string(buffer)
 }

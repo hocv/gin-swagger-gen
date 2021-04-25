@@ -10,27 +10,33 @@ import (
 
 func TestHandleAccept(t *testing.T) {
 	p := proj.New()
-	f, err := file.New("./test/handle.go")
-	if err != nil {
-		t.Fatal(f)
-		return
+	files := []string{
+		"./test/handle.go",
+		"./test/model/model.go",
 	}
-	p.AddFile(f)
-	dstFn, err := f.Func("handleTest")
-	if err != nil {
-		t.Fatal(f)
-		return
+
+	for _, s := range files {
+		f, err := file.New(s)
+		if err != nil {
+			t.Fatal(f)
+			return
+		}
+		p.AddFile(f)
 	}
+
+	ffnd := p.GetFunc("test", "handleTest")
 
 	rh := newRoute(p, "Default", "handleAccept")
-	rh.Parse(f, dstFn)
-	if len(rh.Handles) != 1 {
-		t.Fatal()
-	}
+	for f, fnd := range ffnd {
+		rh.Parse(f, fnd)
+		if len(rh.Handles) != 1 {
+			t.Fatal()
+		}
 
-	rh.Handles[0].Parse()
-	for _, s := range rh.Handles[0].Cmt.Decs() {
-		fmt.Println(s)
+		rh.Handles[0].Parse()
+		for _, s := range rh.Handles[0].Cmt.Decs() {
+			fmt.Println(s)
+		}
 	}
 }
 

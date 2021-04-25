@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/hocv/gin-swagger-gen/parser/test/model"
 
@@ -20,22 +19,25 @@ func handleTest() {
 }
 
 func handleAccept(c *gin.Context) {
-	q := c.Query("q1")
-	i, _ := strconv.Atoi(q)
-	fmt.Print(i)
-	b := c.DefaultQuery("q2", "0")
-	f, _ := c.GetPostForm("f1")
+	// q := c.Query("q1")
+	// i, _ := strconv.Atoi(q)
+	// fmt.Print(i)
+	// b := c.DefaultQuery("q2", "0")
+	// f, _ := c.GetPostForm("f1")
+	//
+	// fmt.Println(q, b, f)
+	//
+	// lg := &login{}
+	// _ = c.BindJSON(lg)
+	//
+	// var b1 login
+	// _ = c.BindXML(&b1)
+	//
+	// var b2 model.Book
+	// _ = c.BindYAML(&b2)
 
-	fmt.Println(q, b, f)
-
-	lg := &login{}
-	_ = c.BindJSON(lg)
-
-	var b1 login
-	_ = c.BindXML(&b1)
-
-	var b2 model.Book
-	_ = c.BindYAML(&b2)
+	var b3 model.Price
+	_ = c.BindQuery(&b3)
 }
 
 func getBook() (model.Book, error) {

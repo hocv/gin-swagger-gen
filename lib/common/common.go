@@ -285,3 +285,87 @@ func BasicLitValue(basic interface{}) string {
 	}
 	return strings.Trim(b.Value, "\"")
 }
+
+const (
+	jsonTag    = "json:\""
+	formTAg    = "form:\""
+	bindingTAg = "binding:\""
+)
+
+func GetTagBindingRequired(str string) bool {
+	return getTag(bindingTAg, str) == "required"
+}
+
+func GetFormTag(str string) string {
+	return getTag(formTAg, str)
+}
+
+func GetJsonTag(str string) string {
+	return getTag(jsonTag, str)
+}
+
+func getTag(tagType string, str string) string {
+	idx := strings.Index(str, tagType)
+	if idx < 0 {
+		return ""
+	}
+	str = str[idx+len(tagType):]
+	idx = strings.Index(str, "\"")
+	str = str[:idx]
+	idx = strings.Index(str, ",")
+	if idx < 0 {
+		return str
+	}
+	return str[:idx]
+}
+
+func SnakeCase(s string) string {
+	s = strings.TrimSpace(s)
+	buffer := make([]rune, 0, len(s)+3)
+
+	delimiter := '_'
+
+	isLower := func(ch rune) bool {
+		return ch >= 'a' && ch <= 'z'
+	}
+	toLower := func(ch rune) rune {
+		if ch >= 'A' && ch <= 'Z' {
+			return ch + 32
+		}
+		return ch
+	}
+	isUpper := func(ch rune) bool {
+		return ch >= 'A' && ch <= 'Z'
+	}
+	isDelimiter := func(ch rune) bool {
+		return ch == '-' || ch == '_' || ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+	}
+
+	var prev rune
+	var curr rune
+	for _, next := range s {
+		if isDelimiter(curr) {
+			if !isDelimiter(prev) {
+				buffer = append(buffer, delimiter)
+			}
+		} else if isUpper(curr) {
+			if isLower(prev) || (isUpper(prev) && isLower(next)) {
+				buffer = append(buffer, delimiter)
+			}
+			buffer = append(buffer, toLower(curr))
+		} else if curr != 0 {
+			buffer = append(buffer, toLower(curr))
+		}
+		prev = curr
+		curr = next
+	}
+
+	if len(s) > 0 {
+		if isUpper(curr) && isLower(prev) && prev != 0 {
+			buffer = append(buffer, delimiter)
+		}
+		buffer = append(buffer, toLower(curr))
+	}
+
+	return string(buffer)
+}
