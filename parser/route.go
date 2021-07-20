@@ -42,7 +42,7 @@ func parseRouteGroup(rh *route, val string, cal string, call *dst.CallExpr) {
 }
 
 // parseRouteMethod g.GET("/usr",handelFunc)
-func parseRouteMethod(rh *route, val string, cal string, call *dst.CallExpr) {
+func parseRouteMethod(rh *route, _ string, cal string, call *dst.CallExpr) {
 	if len(call.Args) < 2 {
 		return
 	}

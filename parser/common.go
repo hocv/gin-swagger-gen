@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/dave/dst"
@@ -33,33 +34,33 @@ func splitDot(str string) (string, string) {
 	return arr[0], arr[1]
 }
 
+var routePathReg = regexp.MustCompile(":\\w+")
+
 // fmtRoutePath remove "" and replace : to {}.
 // e.g. "/user/:id" => /user/{id}
 func fmtRoutePath(r string) string {
 	r = strings.Trim(r, "\"")
-	arr := strings.Split(r, "/")
-	for i, s := range arr {
-		if strings.HasPrefix(s, ":") {
-			trim := strings.Trim(s, ":")
-			arr[i] = fmt.Sprintf("{%s}", trim)
+	r = routePathReg.ReplaceAllStringFunc(r, func(s string) string {
+		if len(s) < 1 {
+			return s
 		}
-	}
-	return strings.Join(arr, "/")
+		return fmt.Sprintf("{%s}", s[1:])
+	})
+	return r
 }
 
+var routeParamReg = regexp.MustCompile("{\\w+}")
+
 // routePathParams params in path. "/user/{id}"
-func routePathParams(r string) []string {
-	r = strings.Trim(r, "\"")
-	arr := strings.Split(r, "/")
-	var params []string
-	for _, s := range arr {
-		if strings.HasPrefix(s, "{") && strings.HasSuffix(s, "}") {
-			trim := strings.Trim(s, "{")
-			trim = strings.Trim(trim, "}")
-			params = append(params, trim)
+func routePathParams(r string) (params []string) {
+	_ = routeParamReg.ReplaceAllStringFunc(r, func(s string) string {
+		if len(s) < 2 {
+			return s
 		}
-	}
-	return params
+		params = append(params, s[1:len(s)-1])
+		return s
+	})
+	return
 }
 
 func copyMap(m map[string]string) map[string]string {

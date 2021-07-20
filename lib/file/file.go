@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/decorator"
@@ -165,7 +166,8 @@ func (f *File) FuncWithRecv(fnName, recvName string) (*dst.FuncDecl, error) {
 	}
 
 	for _, field := range fd.Recv.List {
-		if common.ToStr(field.Type) == recvName {
+		ft := strings.Trim(common.ToStr(field.Type), "*")
+		if ft == recvName {
 			return fd, nil
 		}
 	}

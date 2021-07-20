@@ -31,7 +31,7 @@ func newHandle(proj *proj.Proj, f *file.File, dstDecl *dst.FuncDecl, decl *dst.F
 	vars := make(map[string]string) // key: var ,value: var type or method
 
 	// global vars
-	for k, v := range f.GlobalVars() {
+	for k, v := range proj.GetGlobalVar(f.Pkg()) {
 		vars[k] = v
 	}
 	// vars in function param

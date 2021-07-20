@@ -199,6 +199,7 @@ func (proj *Proj) GetVarsFromStmt(stmt interface{}, curPkg string, outVars map[s
 }
 
 func (proj *Proj) isPkg(name string) bool {
+	name = strings.Trim(name, "*")
 	_, ok := proj.pkgs[name]
 	return ok
 }
@@ -243,7 +244,7 @@ func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outV
 		var pkgName, struName, funcName, fieldName string
 		for _, arg := range args {
 			if proj.isPkg(arg) {
-				pkgName = arg
+				pkgName = strings.Trim(arg, "*")
 				continue
 			}
 			if proj.isStruct(arg) {
@@ -256,7 +257,7 @@ func (proj *Proj) getVarFromCallExprResult(curPkg string, stmt interface{}, outV
 			}
 			fieldName = arg
 		}
-		if len(struName) > 0 {
+		if len(struName) > 0 && len(fieldName) > 0 {
 			ft, ok := proj.getStructFieldType(pkgName, struName, fieldName)
 			if ok {
 				return []string{ft}

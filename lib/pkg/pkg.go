@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dave/dst"
 	"github.com/hocv/gin-swagger-gen/lib/common"
@@ -74,7 +75,30 @@ func (p *Pkg) GetFuncResultByName(FnName, recvName string) []string {
 			continue
 		}
 		for _, field := range fd.Type.Results.List {
-			result = append(result, common.ToStr(field.Type))
+			ft := common.ToStr(field.Type)
+			result = append(result, addPkgToResult(f.Pkg(), ft))
+		}
+	}
+	return result
+}
+
+func addPkgToResult(pkgName, result string) string {
+	if strings.Contains(result, ".") {
+		return result
+	}
+	fn := func(prefix string) {
+		result = fmt.Sprintf("%s%s.%s", prefix, pkgName, strings.TrimPrefix(result, prefix))
+	}
+	prefix := []string{
+		"[]",
+		"[]*",
+		"*",
+		"",
+	}
+	for _, pre := range prefix {
+		if strings.HasPrefix(result, pre) {
+			fn(pre)
+			break
 		}
 	}
 	return result

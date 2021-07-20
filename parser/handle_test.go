@@ -12,7 +12,8 @@ func TestHandleAccept(t *testing.T) {
 	p := proj.New()
 	files := []string{
 		"./test/handle.go",
-		"./test/model/model.go",
+		"./test/model/book/book.go",
+		"./test/model/price/price.go",
 	}
 
 	for _, s := range files {
@@ -44,7 +45,8 @@ func TestHandleProduct(t *testing.T) {
 	p := proj.New()
 	files := []string{
 		"./test/handle.go",
-		"./test/model/model.go",
+		"./test/model/book/book.go",
+		"./test/model/price/price.go",
 	}
 
 	for _, s := range files {
@@ -83,7 +85,8 @@ func TestHandleRecursive(t *testing.T) {
 	files := []string{
 		"./test/recursive.go",
 		"./test/handle.go",
-		"./test/model/model.go",
+		"./test/model/book/book.go",
+		"./test/model/price/price.go",
 	}
 
 	for _, s := range files {
