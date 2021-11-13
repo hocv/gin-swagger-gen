@@ -56,11 +56,12 @@ func (hdl *handle) Parse() {
 }
 
 func (hdl *handle) Merge() {
-	if hdl.Cmt.Merge(hdl.DstDecl) {
-		hdl.DstDecl.Decs.Start.Clear()
-		hdl.DstDecl.Decs.Start.Append(hdl.Cmt.Decs()...)
-		hdl.dstFile.Dirty()
+	if !hdl.Cmt.Merge(hdl.DstDecl) {
+		return
 	}
+	hdl.DstDecl.Decs.Start.Clear()
+	hdl.DstDecl.Decs.Start.Append(hdl.Cmt.Decs()...)
+	hdl.dstFile.Dirty()
 }
 
 func (hdl *handle) Print() {

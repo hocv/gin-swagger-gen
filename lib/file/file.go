@@ -109,7 +109,9 @@ func (f *File) parse() {
 						}
 					case *dst.MapType:
 						mt := ts.Type.(*dst.MapType)
-						f.types[tn] = fmt.Sprintf("map[%s]%s", mt.Key.(*dst.Ident).String(), mt.Value.(*dst.Ident).String())
+						key := common.ToStr(mt.Key)
+						value := common.ToStr(mt.Value)
+						f.types[tn] = fmt.Sprintf("map[%s]%s", key, value)
 					}
 				case *dst.ValueSpec:
 					for k, v := range common.GetVars(gd) {

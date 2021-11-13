@@ -79,6 +79,9 @@ func (c *Comment) Merge(decl *dst.FuncDecl) bool {
 	}
 
 	old := decl.Decs.Start.All()
+	if len(old) == 0 {
+		return true
+	}
 	for _, cmt := range old {
 		c.parseComment(cmt)
 	}
@@ -89,17 +92,13 @@ func (c *Comment) Merge(decl *dst.FuncDecl) bool {
 		dic[s] = struct{}{}
 	}
 
-	update := false
 	for _, s := range old {
 		if _, ok := dic[s]; !ok {
-			update = true
-			break
+			return true
 		}
 	}
-	if update {
 
-	}
-	return update
+	return false
 }
 
 func (c *Comment) SetParamRefType(name, refType string) {
